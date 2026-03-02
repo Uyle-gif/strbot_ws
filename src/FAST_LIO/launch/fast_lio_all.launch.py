@@ -1,76 +1,71 @@
-import os.path
-from pathlib import Path
-from ament_index_python.packages import get_package_share_directory
-
+import os
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable, IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch.conditions import IfCondition
 from launch_ros.actions import Node
+from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
-    # --- 1. Đường dẫn các gói ---
-    fast_lio_pkg = get_package_share_directory('fast_lio')
-    xsens_pkg = get_package_share_directory('xsens_mti_ros2_driver')
-    velodyne_pkg = get_package_share_directory('velodyne')
-
-    # --- 2. Các file cấu hình mặc định ---
-    default_config_path = os.path.join(fast_lio_pkg, 'config')
-    default_rviz_config_path = os.path.join(fast_lio_pkg, 'rviz', 'fastlio.rviz')
-    xsens_params_path = Path(xsens_pkg, 'param', 'xsens_mti_node.yaml')
-
-    # --- 3. Tham số hệ thống ---
+    # --- 1. Tham số hệ thống ---
+    # Luôn mặc định là True khi chạy trong môi trường mô phỏng Gazebo
     use_sim_time = LaunchConfiguration('use_sim_time', default='false')
 
-    # --- 4. Khai báo các Node Driver ---
+    # --- 2. Định nghĩa đường dẫn linh hoạt (Portable Paths) ---
+    # ROS sẽ tự tìm vị trí của package trên mọi máy tính khác nhau
+    pkg_fast_lio = FindPackageShare('fast_lio')
+    
+    # Đường dẫn đến file cấu hình mô phỏng
+    fast_lio_config_path = PathJoinSubstitution([
+        pkg_fast_lio,
+        'config',
+        'velodyne_sim.yaml'
+    ])
 
-    # A. Driver Xsens MTi (Sử dụng driver từ workspace của bạn)
-    xsens_mti_node = Node(
-        package='xsens_mti_ros2_driver',
-        executable='xsens_mti_node',
-        name='xsens_mti_node',
-        output='screen',
-        parameters=[xsens_params_path, {'use_sim_time': use_sim_time}]
-    )
+    # Đường dẫn đến file cấu hình RViz (tùy chọn)
+    default_rviz_config_path = PathJoinSubstitution([
+        pkg_fast_lio,
+        'rviz',
+        'fastlio_sim.rviz'
+    ])
 
-    # B. Driver Velodyne VLP-16 (Sử dụng đúng file chuyên biệt cho VLP16)
-    velodyne_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([
-            os.path.join(velodyne_pkg, 'launch', 'velodyne-all-nodes-VLP16-launch.py')
-        ])
-    )
+    # --- 3. Khai báo các Node ---
 
-    # C. Fast-LIO Mapping Node
+    # Node chính FAST-LIO Mapping
+    # Đã sửa code C++ để chạy trực tiếp trên frame 'odom' và 'base_link'
     fast_lio_node = Node(
         package='fast_lio',
         executable='fastlio_mapping',
         parameters=[
-            os.path.join(default_config_path, 'velodyne.yaml'),
+            fast_lio_config_path,
             {'use_sim_time': use_sim_time}
         ],
         output='screen'
     )
 
-    # D. RViz2
+    # Node RViz2 để quan sát kết quả
     rviz_node = Node(
         package='rviz2',
         executable='rviz2',
-        # arguments=['-d', default_rviz_config_path],
-        output='screen'
+        arguments=['-d', default_rviz_config_path],
+        output='screen',
+        parameters=[{'use_sim_time': use_sim_time}]
     )
 
-    # --- 5. Tổng hợp Launch Description ---
+    # --- 4. Tổng hợp Launch Description ---
     ld = LaunchDescription()
 
-    # Thiết lập logging cho Xsens
-    ld.add_action(SetEnvironmentVariable('RCUTILS_LOGGING_USE_STDOUT', '1'))
-    ld.add_action(SetEnvironmentVariable('RCUTILS_LOGGING_BUFFERED_STREAM', '1'))
+    # Khai báo tham số để có thể thay đổi từ dòng lệnh nếu cần
+    ld.add_action(DeclareLaunchArgument(
+        'use_sim_time',
+        default_value='true',
+        description='Use simulation (Gazebo) clock if true'
+    ))
 
-    # Thêm các thành phần vào Launch
-    ld.add_action(xsens_mti_node)
-    ld.add_action(velodyne_launch)
+    # Thêm các Node vào hệ thống
+    # Lưu ý: Không chạy driver Xsens hay Velodyne thật vì Gazebo đã cung cấp dữ liệu
     ld.add_action(fast_lio_node)
-    ld.add_action(rviz_node)
+
+    # ld.add_action(rviz_node)
 
     return ld
