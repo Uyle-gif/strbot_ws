@@ -602,7 +602,7 @@ void publish_map(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub
     // sensor_msgs::msg::PointCloud2 laserCloudMap;
     // pcl::toROSMsg(*featsFromMap, laserCloudMap);
     // laserCloudMap.header.stamp = get_ros_time(lidar_end_time);
-    // laserCloudMap.header.frame_id = "camera_init";
+    // laserCloudMap.header.frame_id = "odom";
     // pubLaserCloudMap->publish(laserCloudMap);
 }
 
@@ -628,7 +628,7 @@ void set_posestamp(T & out)
 void publish_odometry(const rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pubOdomAftMapped, std::unique_ptr<tf2_ros::TransformBroadcaster> & tf_br)
 {
     odomAftMapped.header.frame_id = "odom";
-    // odomAftMapped.child_frame_id = "body";
+    odomAftMapped.child_frame_id = "base_link";
     odomAftMapped.header.stamp = get_ros_time(lidar_end_time);
     set_posestamp(odomAftMapped.pose);
     pubOdomAftMapped->publish(odomAftMapped);
@@ -644,17 +644,17 @@ void publish_odometry(const rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPt
         odomAftMapped.pose.covariance[i*6 + 5] = P(k, 2);
     }
 
-    geometry_msgs::msg::TransformStamped trans;
-    trans.header.frame_id = "odom";
-    trans.child_frame_id = "base_link";
-    trans.header.stamp = get_ros_time(lidar_end_time);
-    trans.transform.translation.x = odomAftMapped.pose.pose.position.x;
-    trans.transform.translation.y = odomAftMapped.pose.pose.position.y;
-    trans.transform.translation.z = odomAftMapped.pose.pose.position.z;
-    trans.transform.rotation.w = odomAftMapped.pose.pose.orientation.w;
-    trans.transform.rotation.x = odomAftMapped.pose.pose.orientation.x;
-    trans.transform.rotation.y = odomAftMapped.pose.pose.orientation.y;
-    trans.transform.rotation.z = odomAftMapped.pose.pose.orientation.z;
+    // geometry_msgs::msg::TransformStamped trans;
+    // trans.header.frame_id = "odom";
+    // trans.child_frame_id = "base_link";
+    // trans.header.stamp = get_ros_time(lidar_end_time);
+    // trans.transform.translation.x = odomAftMapped.pose.pose.position.x;
+    // trans.transform.translation.y = odomAftMapped.pose.pose.position.y;
+    // trans.transform.translation.z = odomAftMapped.pose.pose.position.z;
+    // trans.transform.rotation.w = odomAftMapped.pose.pose.orientation.w;
+    // trans.transform.rotation.x = odomAftMapped.pose.pose.orientation.x;
+    // trans.transform.rotation.y = odomAftMapped.pose.pose.orientation.y;
+    // trans.transform.rotation.z = odomAftMapped.pose.pose.orientation.z;
     // tf_br->sendTransform(trans);
 }
 

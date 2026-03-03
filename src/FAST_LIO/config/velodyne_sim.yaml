@@ -3,8 +3,8 @@
         feature_extract_enable: true
         point_filter_num: 4
         max_iteration: 3
-        filter_size_surf: 0.5
-        filter_size_map: 0.5
+        filter_size_surf: 1.0
+        filter_size_map: 1.0
         cube_side_length: 1000.0
         runtime_pos_log_enable: true
         map_file_path: "./test.pcd"
@@ -12,8 +12,8 @@
         common:
             lid_topic:  "/velodyne_points/points"
             imu_topic:  "/imu/out"
-            time_sync_en: false         # ONLY turn on when external time synchronization is really not possible
-            time_offset_lidar_to_imu: 10.0 # Time offset between lidar and IMU calibrated by other algorithms, e.g. LI-Init (can be found in README).
+            time_sync_en: true         # ONLY turn on when external time synchronization is really not possible
+            time_offset_lidar_to_imu: 0.0 # Time offset between lidar and IMU calibrated by other algorithms, e.g. LI-Init (can be found in README).
                                         # This param will take effect no matter what time_sync_en is. So if the time offset is not known exactly, please set as 0.0
 
 
@@ -22,7 +22,7 @@
             lidar_type: 2                # 1 for Livox serials LiDAR, 2 for Velodyne LiDAR, 3 for ouster LiDAR, 
             scan_line: 32
             scan_rate: 10                # only need to be set for velodyne, unit: Hz,
-            timestamp_unit: 2            # the unit of time/t field in the PointCloud2 rostopic: 0-second, 1-milisecond, 2-microsecond, 3-nanosecond.
+            timestamp_unit: 3           # the unit of time/t field in the PointCloud2 rostopic: 0-second, 1-milisecond, 2-microsecond, 3-nanosecond.
             blind: 2.0
 
         mapping:

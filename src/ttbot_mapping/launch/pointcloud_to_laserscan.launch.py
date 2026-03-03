@@ -8,19 +8,22 @@ def generate_launch_description():
             executable='pointcloud_to_laserscan_node',
             name='pointcloud_to_laserscan',
             remappings=[
-                ('cloud_in', '/velodyne_points/points'),
+                # QUAN TRỌNG: Lấy dữ liệu đã khử nhiễu từ FAST-LIO
+                ('cloud_in', '/cloud_registered'), 
                 ('scan', '/scan'),
             ],
             parameters=[{
                 'target_frame': 'base_link', 
                 'transform_tolerance': 0.01,
+                'use_sim_time': True, # Bắt buộc vì bạn đang chạy mô phỏng
                 
-                'min_height': 0.05, 
-                'max_height': 0.3,  
+                # Mở rộng dải quét để lấy đủ thân tường
+                'min_height': -0.2,
+                'max_height': 1.0,  
                 
                 'angle_min': -3.1415, 
                 'angle_max': 3.1415,
-                'angle_increment': 0.0087, 
+                'angle_increment': 0.0043, # Tăng độ phân giải điểm quét
                 'scan_time': 0.1,
                 'range_min': 0.5, 
                 'range_max': 50.0,

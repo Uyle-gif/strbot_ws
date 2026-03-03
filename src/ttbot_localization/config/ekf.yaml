@@ -3,7 +3,7 @@ ekf_filter_node:
       # The frequency, in Hz, at which the filter will output a position estimate. Note that the filter will not begin
       # computation until it receives at least one message from one of the inputs. It will then run continuously at the
       # frequency specified here, regardless of whether it receives more measurements. Defaults to 30 if unspecified.
-      frequency: 30.0
+      frequency: 50.0
 
       # ekf_localization_node and ukf_localization_node both use a 3D omnidirectional motion model. If this parameter is
       # set to true, no 3D information will be used in your state estimate. Use this if you are operating in a planar
@@ -12,7 +12,7 @@ ekf_filter_node:
       two_d_mode: true
 
       # Whether to broadcast the transformation over the /tf topic. Defaults to true if unspecified.
-      publish_tf: true
+      publish_tf: true 
 
       # REP-105 (http://www.ros.org/reps/rep-0105.html) specifies four principal coordinate frames: base_link, odom, map, and
       # earth. base_link is the coordinate frame that is affixed to the robot. Both odom and map are world-fixed frames.
@@ -50,12 +50,12 @@ ekf_filter_node:
       # has no pose information, so the first six values would be meaningless in that case. Each vector defaults to all false
       # if unspecified, effectively making this parameter required for each sensor.
       imu0_config: [false, false, false,
-                    false, false, true,
+                    false, false, false,
                     false, false, false,
                     false, false, true,
                     false,  false, false]
 
-      imu0_differential: false
+      imu0_differential: true
       imu0_pose_use_child_frame: false
 
       # The filter accepts an arbitrary number of inputs from each input message type (nav_msgs/Odometry,
@@ -73,7 +73,7 @@ ekf_filter_node:
       # if unspecified, effectively making this parameter required for each sensor.
       odom0_config: [false, false, false,
                      false, false, false,
-                     true,  true,  false,
+                     true,  false,  false,
                      false, false, false,
                      false, false, false]
 
@@ -85,8 +85,27 @@ ekf_filter_node:
       # data is converted to velocity data by differentiating the absolute pose measurements. These velocities are then
       # integrated as usual. NOTE: this only applies to sensors that provide pose measurements; setting differential to true
       # for twist measurements has no effect.
-      odom0_differential: false
+      odom0_differential: true
       odom0_pose_use_child_frame: false
+
+      # ---------------------------------------------------------
+      # INPUT 3: FAST-LIO (Lidar Odometry) - Topic: /Odometry
+      # ---------------------------------------------------------
+      odom1: /Odometry   # <-- Đây là topic Output của FAST-LIO
+      
+      # Chiến thuật: FAST-LIO rất chính xác, ta dùng nó để "neo" vị trí robot lại, chống trôi cho bánh xe.
+      # Ta tin VỊ TRÍ (X, Y, Z) và GÓC (Roll, Pitch, Yaw) của nó.
+      odom1_config: [true,  true,  false,  # X, Y, Z
+                    false,  false,  true,  # Roll, Pitch, Yaw
+                    false, false, false,
+                    false, false, false,
+                    false, false, false]
+                    
+      odom1_differential: false  # FAST-LIO đã cho ra vị trí tuyệt đối rồi, không cần chuyển thành tốc độ nữa.
+
+      odom1_relative: false
+
+      odom1_queue_size: 10 
 
       # [ADVANCED] The process noise covariance matrix can be difficult to tune, and can vary for each application, so it is
       # exposed as a configuration parameter. This matrix represents the noise we add to the total error after each
