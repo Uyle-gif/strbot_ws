@@ -86,7 +86,12 @@ def generate_launch_description():
             "/gps/fix@sensor_msgs/msg/NavSatFix[gz.msgs.NavSat",
             "/imu@sensor_msgs/msg/Imu[gz.msgs.IMU",
             "/world/gps_world/model/ttbot/joint_state@sensor_msgs/msg/JointState[gz.msgs.Model",
-            "/velodyne_points/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked"
+            "/velodyne_points/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked",
+            # --- THÊM 4 DÒNG NÀY CHO REALSENSE D435i ---
+            "/camera/rgbd/image@sensor_msgs/msg/Image[gz.msgs.Image",
+            "/camera/rgbd/depth_image@sensor_msgs/msg/Image[gz.msgs.Image",
+            "/camera/rgbd/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo",
+            "/camera/imu@sensor_msgs/msg/Imu[gz.msgs.IMU"
         ],
         remappings=[
             ('/gps/fix', '/gps/fix'),

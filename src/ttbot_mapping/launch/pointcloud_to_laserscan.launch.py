@@ -14,11 +14,11 @@ def generate_launch_description():
             ],
             parameters=[{
                 'target_frame': 'base_link', 
-                'transform_tolerance': 0.01,
+                'transform_tolerance': 0.02,
                 'use_sim_time': True, # Bắt buộc vì bạn đang chạy mô phỏng
                 
                 # Mở rộng dải quét để lấy đủ thân tường
-                'min_height': -0.2,
+                'min_height': -0.25,
                 'max_height': 1.0,  
                 
                 'angle_min': -3.1415, 

@@ -66,7 +66,7 @@
   <gazebo reference="imu_link">
     <sensor name="imu" type="imu">
         <always_on>true</always_on>
-        <update_rate>100</update_rate>
+        <update_rate>400</update_rate>
         <gz_frame_id>imu_link</gz_frame_id>
         <topic>imu</topic>
         <imu>
@@ -165,6 +165,53 @@
           </ray>
       </sensor>
   </gazebo>
+
+  <gazebo reference="camera_link">
+    <sensor name="realsense_d435i_rgbd" type="rgbd_camera">
+      <pose>0 0 0 0 0 0</pose>
+      <always_on>true</always_on>
+      <update_rate>30</update_rate>
+      
+      <topic>/camera/rgbd</topic> 
+      <ignition_frame_id>camera_color_optical_frame</ignition_frame_id>
+      
+      <camera>
+        <horizontal_fov>1.5184</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.1</near>
+          <far>10.0</far> </clip>
+      </camera>
+    </sensor>
+
+    <sensor name="realsense_d435i_imu" type="imu">
+      <always_on>true</always_on>
+      <update_rate>200</update_rate> <topic>/camera/imu</topic>
+      <ignition_frame_id>camera_link</ignition_frame_id>
+      <imu>
+        <angular_velocity>
+          <x><noise type="gaussian"><mean>0.0</mean><stddev>2e-4</stddev></noise></x>
+          <y><noise type="gaussian"><mean>0.0</mean><stddev>2e-4</stddev></noise></y>
+          <z><noise type="gaussian"><mean>0.0</mean><stddev>2e-4</stddev></noise></z>
+        </angular_velocity>
+        <linear_acceleration>
+          <x><noise type="gaussian"><mean>0.0</mean><stddev>1.7e-2</stddev></noise></x>
+          <y><noise type="gaussian"><mean>0.0</mean><stddev>1.7e-2</stddev></noise></y>
+          <z><noise type="gaussian"><mean>0.0</mean><stddev>1.7e-2</stddev></noise></z>
+        </linear_acceleration>
+      </imu>
+    </sensor>
+  </gazebo>
+
+  <!-- <gazebo>
+    <plugin filename="ignition-gazebo-sensors-system" name="ignition::gazebo::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+  </gazebo> -->
 
   <gazebo>
       <plugin filename="ignition-gazebo-navsat-system"
