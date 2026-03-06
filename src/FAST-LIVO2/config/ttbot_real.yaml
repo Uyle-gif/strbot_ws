@@ -13,18 +13,28 @@
     
       # Khoảng cách từ IMU (ở camera) 
       extrinsic_T: [0.0, 0.0, 0.07]
-      extrinsic_R: [1.0, 0.0, 0.0, 
-                    0.0, 1.0, 0.0, 
-                    0.0, 0.0, 1.0]
+      # extrinsic_R: [0.0, -1.0, 0.0, 
+      #               1.0, 0.0, 0.0, 
+      #               0.0, 0.0, 1.0]
+      extrinsic_R: [ 0.0,  1.0,  0.0, 
+                    -1.0,  0.0,  0.0, 
+                     0.0,  0.0,  1.0]
       
       # Ma trận xoay từ Hệ quang học Camera (Optical Frame) sang Lidar
       # (Z camera cắm tới trước = X lidar, X camera sang phải = -Y lidar, Y camera chúc xuống = -Z lidar)
-      Rcl: [ 0.0,  -1.0,  0.0,
-             0.0,  0.0,  -1.0,
-             1.0, 0.0,  0.0]
+      # Rcl: [ 0.0,  -1.0,  0.0,
+      #        0.0,  0.0,  -1.0,
+      #        1.0, 0.0,  0.0]
+      # Rcl: [-1.0,  0.0,  0.0,
+      #        0.0,  0.0, -1.0,
+      #        0.0, -1.0,  0.0]
+      # Ma trận đã lật ngược hình lại cho đúng chiều trên/dưới
+      Rcl: [ 1.0,  0.0,  0.0,
+             0.0,  0.0, -1.0,
+             0.0,  1.0,  0.0]
       
       # Vị trí của Camera (0.5, 0, 0.65) so với gốc tọa độ Lidar (0, 0, 0.8)
-      Pcl: [0.5, 0.0, -0.15]
+      Pcl: [0.10, -0.02, -0.04]
 
     time_offset: 
       imu_time_offset: 0.0
@@ -89,7 +99,7 @@
       pose_output_en: false
 
     pcd_save:
-      pcd_save_en: false
+      pcd_save_en: true
       colmap_output_en: false 
       filter_size_pcd: 0.15
       interval: -1

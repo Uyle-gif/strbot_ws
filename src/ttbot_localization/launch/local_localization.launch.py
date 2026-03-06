@@ -11,27 +11,28 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time', default='false')
     common_params = [{"use_sim_time": use_sim_time}]
 
-    static_transform_publisher = Node(
-        package="tf2_ros",
-        executable="static_transform_publisher",
-        arguments=["--x", "0", "--y", "-0.2","--z", "0.13",
-                   "--qx", "0", "--qy", "0", "--qz", "0", "--qw", "1",
-                   "--frame-id", "base_link",
-                   "--child-frame-id", "imu_link"],
-        parameters=common_params 
-    )
-    static_tf_lidar = Node(
-        package="tf2_ros",
-        executable="static_transform_publisher",
-        name="static_transform_publisher_lidar",
-        arguments=[
-            "0.0", "0.0", "0.2",  # x, y, z (Ví dụ: Lidar cao hơn base_link 20cm)
-            "0.0", "0.0", "0.0",  # roll, pitch, yaw (Dạng radian hoặc dùng qx qy qz qw)
-            "base_link",          # Frame cha
-            "lidar_link"          # Frame con (Phải khớp với frame_id trong FAST_LIO config)
-        ],
-        parameters=common_params
-    )
+    # static_transform_publisher = Node(
+    #     package="tf2_ros",
+    #     executable="static_transform_publisher",
+    #     arguments=["--x", "-0.20", "--y", "-0.03","--z", "1.50",
+    #                "--qx", "0", "--qy", "0", "--qz", "0", "--qw", "1",
+    #                "--frame-id", "base_link",
+    #                "--child-frame-id", "imu_link"],
+    #     parameters=common_params 
+    # )
+
+    # static_tf_lidar = Node(
+    #         package="tf2_ros",
+    #         executable="static_transform_publisher",
+    #         name="static_transform_publisher_lidar",
+    #         arguments=[
+    #             "--x", "-0.30", "--y", "-0.03", "--z", "1.50", 
+    #             "--roll", "0.0", "--pitch", "0.0", "--yaw", "0.0",
+    #             "--frame-id", "base_link",
+    #             "--child-frame-id", "lidar_link"
+    #         ],
+    #         parameters=common_params
+    #     )
 
     robot_localization = Node(
         package="robot_localization",
@@ -56,8 +57,8 @@ def generate_launch_description():
             default_value='false',
             description='Use simulation (Gazebo) clock if true'),
             
-        static_transform_publisher,
-        static_tf_lidar, # Thêm node mới vào đây
+        # static_transform_publisher,
+        # static_tf_lidar, 
         robot_localization,
         imu_republisher_cpp,   
     ])

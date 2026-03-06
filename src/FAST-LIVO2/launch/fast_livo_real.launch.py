@@ -55,11 +55,19 @@ def generate_launch_description():
         parameters=[{'use_sim_time': False}],
         output="screen"
     )
+    param_blackboard_node = Node(
+        package='demo_nodes_cpp',
+        executable='parameter_blackboard',
+        name='parameter_blackboard',
+        parameters=[camera_config_real],
+        output='screen'
+    )
 
     return LaunchDescription([
         velodyne_launch,
         realsense_launch,
         xsens_launch,
+        param_blackboard_node, 
         fastlivo_node,
         rviz_node
     ])
