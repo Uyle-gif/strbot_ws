@@ -1216,7 +1216,7 @@ void LIVMapper::publish_frame_world(const rclcpp::Publisher<sensor_msgs::msg::Po
         pointRGB.z = pcl_wait_pub->points[i].z;
 
         V3D p_w(pcl_wait_pub->points[i].x, pcl_wait_pub->points[i].y, pcl_wait_pub->points[i].z);
-        V3D pf(vio_manager->new_frame_->w2f(p_w)); //if (pf[2] < 0) continue;
+        V3D pf(vio_manager->new_frame_->w2f(p_w)); if (pf[2] < 0) continue;
         V2D pc(vio_manager->new_frame_->w2c(p_w));
         
 
@@ -1226,6 +1226,9 @@ void LIVMapper::publish_frame_world(const rclcpp::Publisher<sensor_msgs::msg::Po
           pointRGB.r = pixel[2];
           pointRGB.g = pixel[1];
           pointRGB.b = pixel[0];
+          if (pf.norm() > blind_rgb_points) {
+            laserCloudWorldRGB->push_back(pointRGB);
+          }
           // pointRGB.r = pixel[2] * inv_expo; pointRGB.g = pixel[1] * inv_expo; pointRGB.b = pixel[0] * inv_expo;
           // if (pointRGB.r > 255) pointRGB.r = 255;
           // else if (pointRGB.r < 0) pointRGB.r = 0;
@@ -1235,16 +1238,16 @@ void LIVMapper::publish_frame_world(const rclcpp::Publisher<sensor_msgs::msg::Po
           // else if (pointRGB.b < 0) pointRGB.b = 0;
           // if (pf.norm() > blind_rgb_points) laserCloudWorldRGB->push_back(pointRGB);
         }
-        else 
-        {
-          // TRƯỜNG HỢP 2: Điểm nằm sau lưng camera HOẶC ngoài rìa khung hình -> Tô màu xám
-          pointRGB.r = 150;
-          pointRGB.g = 150;
-          pointRGB.b = 150;
-        }
-        if (p_w.norm() > blind_rgb_points) {
-            laserCloudWorldRGB->push_back(pointRGB);
-        }
+        // else 
+        // {
+        //   // TRƯỜNG HỢP 2: Điểm nằm sau lưng camera HOẶC ngoài rìa khung hình -> Tô màu xám
+        //   pointRGB.r = 150;
+        //   pointRGB.g = 150;
+        //   pointRGB.b = 150;
+        // }
+        // if (p_w.norm() > blind_rgb_points) {
+        //     laserCloudWorldRGB->push_back(pointRGB);
+        // }
       }
     }
     else
@@ -1254,19 +1257,44 @@ void LIVMapper::publish_frame_world(const rclcpp::Publisher<sensor_msgs::msg::Po
   }
 
   /*** Publish Frame ***/
-  sensor_msgs::msg::PointCloud2 laserCloudmsg;
-  if (img_en)
+  // sensor_msgs::msg::PointCloud2 laserCloudmsg;
+  // if (img_en)
+  // {
+  //   // cout << "RGB pointcloud size: " << laserCloudWorldRGB->size() << endl;
+  //   pcl::toROSMsg(*laserCloudWorldRGB, laserCloudmsg);
+  // }
+  // else 
+  // { 
+  //   pcl::toROSMsg(*pcl_w_wait_pub, laserCloudmsg); 
+  // }
+  // laserCloudmsg.header.stamp = this->node->get_clock()->now(); //.fromSec(last_timestamp_lidar);
+  // laserCloudmsg.header.frame_id = "odom";
+  // pubLaserCloudFullRes->publish(laserCloudmsg);
+
+  /*** Publish Frame (Đã phân luồng) ***/
+  
+  // LUỒNG 1: DÀNH CHO SLAM 2D (slam_toolbox)
+  // Phát toàn bộ 360 độ (đã deskew, không màu) lên topic /cloud_registered
+  sensor_msgs::msg::PointCloud2 laser360msg;
+  pcl::toROSMsg(*pcl_w_wait_pub, laser360msg); 
+  laser360msg.header.stamp = this->node->get_clock()->now();
+  laser360msg.header.frame_id = "odom";
+  pubLaserCloudFullRes->publish(laser360msg);
+
+  // LUỒNG 2: DÀNH CHO RVIZ2 VÀ XEM MAP 3D
+  // Phát bản đồ màu (chỉ góc hẹp phía trước, không có mảng xám) lên topic /Laser_map
+  if (img_en && laserCloudWorldRGB->size() > 0)
   {
-    // cout << "RGB pointcloud size: " << laserCloudWorldRGB->size() << endl;
-    pcl::toROSMsg(*laserCloudWorldRGB, laserCloudmsg);
+    // Tối ưu hóa: Chỉ tốn tài nguyên phát khi có RViz2 đang mở và xem topic này
+    if (pubLaserCloudMap->get_subscription_count() > 0) 
+    {
+      sensor_msgs::msg::PointCloud2 laserRGBmsg;
+      pcl::toROSMsg(*laserCloudWorldRGB, laserRGBmsg);
+      laserRGBmsg.header.stamp = this->node->get_clock()->now();
+      laserRGBmsg.header.frame_id = "odom";
+      pubLaserCloudMap->publish(laserRGBmsg);
+    }
   }
-  else 
-  { 
-    pcl::toROSMsg(*pcl_w_wait_pub, laserCloudmsg); 
-  }
-  laserCloudmsg.header.stamp = this->node->get_clock()->now(); //.fromSec(last_timestamp_lidar);
-  laserCloudmsg.header.frame_id = "odom";
-  pubLaserCloudFullRes->publish(laserCloudmsg);
 
   /**************** save map ****************/
   /* 1. make sure you have enough memories
