@@ -87,6 +87,9 @@ logout then login again
 ros2 run adis16488_driver adis16488_node --ros-args -p port:=/dev/ttbot_imu -p baudrate:=460800
 ```
 
+source /home/vinh/microros_ws/install/local_setup.bash
+
+ros2 run micro_ros_agent micro_ros_agent serial --dev /dev/ttyUSB0
 
 
 
