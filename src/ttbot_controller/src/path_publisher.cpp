@@ -1,104 +1,104 @@
 #include <chrono>
-#include <memory>
-#include <vector>
-#include <cmath>
-#include <iostream>
+#include <fstream>
+#include <sstream>
 #include <string>
+#include <vector>
+#include <memory>
 
 #include "rclcpp/rclcpp.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 
-using namespace std::chrono_literals;
-
-class PathPublisher : public rclcpp::Node
+class PathFileReader : public rclcpp::Node
 {
 public:
-    PathPublisher() : Node("path_publisher")
+    PathFileReader() : Node("path_reader_node")
     {
+        // 1. Khai báo tham số
         this->declare_parameter("frame_id", "map");
+        this->declare_parameter("file_path", ""); // Đường dẫn tuyệt đối tới file CSV
+
         frame_id_ = this->get_parameter("frame_id").as_string();
+        std::string file_path = this->get_parameter("file_path").as_string();
 
-        // Tạo Publisher với QoS mặc định (Reliable)
-        publisher_ = this->create_publisher<nav_msgs::msg::Path>("/mpc_path", 10);
-        
-        // Tạo đường đi
-        generate_rounded_u_path();
+        // 2. Setup Publisher với QoS Transient Local (Lưu lại cho Node chạy sau)
+        rclcpp::QoS qos_profile(10);
+        qos_profile.transient_local();
+        publisher_ = this->create_publisher<nav_msgs::msg::Path>("/mpc_path", qos_profile);
 
-        // Timer sẽ kích hoạt sau 1 giây để đảm bảo hệ thống đã sẵn sàng kết nối
-        // Sau đó nó sẽ publish 1 lần và tự tắt.
-        timer_ = this->create_wall_timer(
-            1000ms, std::bind(&PathPublisher::timer_callback, this));
-            
-        RCLCPP_INFO(this->get_logger(), "Path Publisher Started. Waiting 1s to publish ONCE...");
+        // 3. Kiểm tra đường dẫn và đọc file
+        if (file_path.empty()) {
+            RCLCPP_ERROR(this->get_logger(), "Chua cung cap duong dan file_path!");
+            return;
+        }
+
+        load_and_publish_csv(file_path);
     }
 
 private:
-    void generate_rounded_u_path()
+    void load_and_publish_csv(const std::string& file_path)
     {
-        path_.header.frame_id = frame_id_;
-        path_.poses.clear();
-        double step = 0.1; // Mật độ điểm 10cm
+        nav_msgs::msg::Path path;
+        path.header.frame_id = frame_id_;
+        path.header.stamp = this->now();
 
-        // 1. Đi thẳng 15m
-        for (double x = 0.0; x <= 15.0; x += step) add_point(x, 0.0);
+        std::ifstream file(file_path);
+        if (!file.is_open()) {
+            RCLCPP_ERROR(this->get_logger(), "Khong the mo file: %s", file_path.c_str());
+            return;
+        }
 
-        // 2. Cua trái bo tròn (R=5m)
-        double R = 5.0, cx1 = 15.0, cy1 = 5.0;
-        for (double a = -M_PI_2; a <= 0.0; a += 0.05) 
-            add_point(cx1 + R * cos(a), cy1 + R * sin(a));
+        std::string line;
+        int point_count = 0;
 
-        // 3. Đi thẳng lên 5m
-        for (double y = 5.0; y <= 10.0; y += step) add_point(20.0, y);
+        // Đọc từng dòng trong file CSV
+        while (std::getline(file, line)) {
+            // Bỏ qua dòng trống hoặc dòng comment/tiêu đề (bắt đầu bằng chữ cái)
+            if (line.empty() || isalpha(line[0]) || line[0] == '#') continue;
 
-        // 4. Cua trái quay đầu (R=5m)
-        double cx2 = 15.0, cy2 = 10.0;
-        for (double a = 0.0; a <= M_PI_2; a += 0.05) 
-            add_point(cx2 + R * cos(a), cy2 + R * sin(a));
+            std::stringstream ss(line);
+            std::string token;
+            std::vector<double> values;
 
-        // 5. Đi thẳng về đích (X = -5m)
-        for (double x = 15.0; x >= -5.0; x -= step) add_point(x, 15.0);
+            // Tách các giá trị bằng dấu phẩy
+            while (std::getline(ss, token, ',')) {
+                try {
+                    values.push_back(std::stod(token));
+                } catch (...) {
+                    continue; // Bỏ qua nếu lỗi ép kiểu
+                }
+            }
+
+            // Nếu đọc được ít nhất 2 cột (x, y)
+            if (values.size() >= 2) {
+                geometry_msgs::msg::PoseStamped pose;
+                pose.header.frame_id = frame_id_;
+                pose.header.stamp = path.header.stamp;
+                
+                pose.pose.position.x = values[0]; // Cột 1 là X
+                pose.pose.position.y = values[1]; // Cột 2 là Y
+                pose.pose.position.z = 0.0;
+                pose.pose.orientation.w = 1.0; 
+
+                path.poses.push_back(pose);
+                point_count++;
+            }
+        }
+        file.close();
+
+        // Publish đường đi
+        publisher_->publish(path);
+        RCLCPP_INFO(this->get_logger(), ">>> Da load va publish thanh cong %d toa do tu file CSV <<<", point_count);
     }
 
-    void add_point(double x, double y) {
-        geometry_msgs::msg::PoseStamped pose;
-        pose.header.frame_id = frame_id_;
-        pose.pose.position.x = x;
-        pose.pose.position.y = y;
-        pose.pose.position.z = 0.0;
-        pose.pose.orientation.w = 1.0; 
-        path_.poses.push_back(pose);
-    }
-
-    void timer_callback()
-    {
-        // Kiểm tra an toàn: Nếu đã gửi rồi thì thôi (dù timer đáng lẽ đã bị hủy)
-        if (is_published_) return;
-
-        // Cập nhật thời gian thực
-        path_.header.stamp = this->now();
-        
-        // PUBLISH
-        publisher_->publish(path_);
-        
-        RCLCPP_INFO(this->get_logger(), ">>> PATH PUBLISHED SUCCESSFULLY (1 TIME). STOPPING TIMER. <<<");
-        
-        // Đánh dấu đã gửi và HỦY TIMER NGAY LẬP TỨC
-        is_published_ = true;
-        timer_->cancel();
-    }
-
-    rclcpp::TimerBase::SharedPtr timer_;
-    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr publisher_;
     std::string frame_id_;
-    nav_msgs::msg::Path path_;
-    bool is_published_ = false; // Cờ đánh dấu
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr publisher_;
 };
 
 int main(int argc, char * argv[])
 {
     rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<PathPublisher>());
+    rclcpp::spin(std::make_shared<PathFileReader>());
     rclcpp::shutdown();
     return 0;
 }

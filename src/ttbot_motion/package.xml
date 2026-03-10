@@ -1,31 +1,32 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>ttbot_planning</name>
+  <name>ttbot_motion</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>MPC Motion Planner Nav2 Plugin</description>
   <maintainer email="uylegia7@gmail.com">uylegia</maintainer>
-  <license>TODO: License declaration</license>
+  <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>rclcpp</depend>
-  <depend>rclcpp_action</depend>
-  <depend>rclpy</depend>
-  <depend>nav_msgs</depend>
-  <depend>geometry_msgs</depend>
-  <depend>tf2_ros</depend>
   <depend>nav2_core</depend>
   <depend>nav2_costmap_2d</depend>
   <depend>nav2_util</depend>
-  <depend>nav2_msgs</depend>
   <depend>pluginlib</depend>
-
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <depend>std_msgs</depend>
+  
+  <depend>osqp</depend>
+  
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
-      <nav2_core plugin="${prefix}/global_planner_plugins.xml" />
+    <nav2_core plugin="${prefix}/motion_planner_plugins.xml" />
   </export>
 </package>

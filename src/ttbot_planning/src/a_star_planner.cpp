@@ -1,139 +1,162 @@
+#include <cmath>
+#include <algorithm>
 #include "ttbot_planning/a_star_planner.hpp"
 
 namespace ttbot_planning
 {
-AStarPlanner::AStarPlanner() : Node("ttbot_a_star_planner") {
-    tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
-    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+void AStarPlanner::configure(
+  const rclcpp_lifecycle::LifecycleNode::WeakPtr & parent,
+  std::string name, std::shared_ptr<tf2_ros::Buffer> tf,
+  std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros)
+{
+  node_ = parent.lock();
+  name_ = name;
+  tf_ = tf;
+  costmap_ = costmap_ros->getCostmap();
+  global_frame_ = costmap_ros->getGlobalFrameID();
 
-    rclcpp::QoS map_qos(10);
-    map_qos.durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
-
-    map_sub_ = create_subscription<nav_msgs::msg::OccupancyGrid>(
-        "/map", map_qos, std::bind(&AStarPlanner::mapCallback, this, std::placeholders::_1));
-    
-    pose_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>(
-        "/goal_pose", 10, std::bind(&AStarPlanner::goalCallback, this, std::placeholders::_1));
-    
-    path_pub_ = create_publisher<nav_msgs::msg::Path>("/mpc_path", 10);
-    
-    RCLCPP_INFO(get_logger(), "A* Planner node initialized.");
+  smooth_client_ = rclcpp_action::create_client<nav2_msgs::action::SmoothPath>(node_, "smooth_path");
 }
 
-void AStarPlanner::mapCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
-    map_ = msg;
+void AStarPlanner::cleanup()
+{
+  RCLCPP_INFO(node_->get_logger(), "CleaningUp plugin %s of type AStarPlanner", name_.c_str());
 }
 
-void AStarPlanner::goalCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
-    if(!map_) { 
-        RCLCPP_ERROR(get_logger(), "Map not ready yet!"); 
-        return; 
-    }
-
-    geometry_msgs::msg::TransformStamped tf;
-    try {
-        // Tìm tọa độ robot hiện tại trong hệ tọa độ map
-        tf = tf_buffer_->lookupTransform(map_->header.frame_id, "base_link", tf2::TimePointZero);
-    } catch (const tf2::TransformException & ex) {
-        RCLCPP_ERROR(get_logger(), "TF Error: %s", ex.what()); 
-        return;
-    }
-
-    geometry_msgs::msg::Pose start_pose;
-    start_pose.position.x = tf.transform.translation.x;
-    start_pose.position.y = tf.transform.translation.y;
-    start_pose.orientation = tf.transform.rotation;
-
-    auto path = plan(start_pose, msg->pose);
-    
-    if (!path.poses.empty()) {
-        RCLCPP_INFO(get_logger(), "Optimal path found successfully.");
-        path_pub_->publish(path);
-    } else {
-        RCLCPP_WARN(get_logger(), "Failed to find a valid path to the goal.");
-    }
+void AStarPlanner::activate()
+{
+  RCLCPP_INFO(node_->get_logger(), "Activating plugin %s of type AStarPlanner", name_.c_str());
+  if (!smooth_client_->wait_for_action_server(std::chrono::seconds(3))) {
+    RCLCPP_ERROR(node_->get_logger(), "Action server smooth_path not available after waiting");
+  }
 }
 
-nav_msgs::msg::Path AStarPlanner::plan(const geometry_msgs::msg::Pose & start, const geometry_msgs::msg::Pose & goal) {
-    // 8 hướng di chuyển
-    std::vector<std::pair<int, int>> dirs = {{-1,0}, {1,0}, {0,-1}, {0,1}, {-1,-1}, {-1,1}, {1,-1}, {1,1}};
-    std::priority_queue<GraphNode, std::vector<GraphNode>, std::greater<GraphNode>> open_set;
-    std::vector<bool> closed_set(map_->info.width * map_->info.height, false);
+void AStarPlanner::deactivate()
+{
+  RCLCPP_INFO(node_->get_logger(), "Deactivating plugin %s of type AStarPlanner", name_.c_str());
+}
 
-    GraphNode start_node = worldToGrid(start);
-    GraphNode goal_node = worldToGrid(goal);
-    start_node.heuristic = manhattanDistance(start_node, goal_node);
-    open_set.push(start_node);
+nav_msgs::msg::Path AStarPlanner::createPlan(
+  const geometry_msgs::msg::PoseStamped & start,
+  const geometry_msgs::msg::PoseStamped & goal)
+{
+  std::vector<std::pair<int, int>> explore_directions = {
+    {-1, 0}, {1, 0}, {0, -1}, {0, 1}, {-1, -1}, {-1, 1}, {1, -1}, {1, 1}
+  };
 
-    GraphNode current;
-    bool found = false;
-    
-    while(!open_set.empty() && rclcpp::ok()) {
-        current = open_set.top(); open_set.pop();
+  std::priority_queue<GraphNode, std::vector<GraphNode>, std::greater<GraphNode>> pending_nodes;
+  
+  unsigned int size_x = costmap_->getSizeInCellsX();
+  unsigned int size_y = costmap_->getSizeInCellsY();
+  std::vector<bool> closed_set(size_x * size_y, false);
+  
+  GraphNode start_node = worldToGrid(start.pose);
+  GraphNode goal_node = worldToGrid(goal.pose);
+  start_node.heuristic = manhattanDistance(start_node, goal_node);
+  pending_nodes.push(start_node);
+
+  GraphNode active_node;
+  bool found = false;
+
+  while (!pending_nodes.empty() && rclcpp::ok()) {
+    active_node = pending_nodes.top();
+    pending_nodes.pop();
+
+    if (active_node == goal_node) {
+      found = true;
+      break;
+    }
+
+    unsigned int idx = poseToCell(active_node);
+    if(closed_set[idx]) continue;
+    closed_set[idx] = true;
+
+    for (const auto & dir : explore_directions) {
+        GraphNode new_node = active_node + dir;
         
-        if(current == goal_node) { found = true; break; }
-        
-        unsigned int idx = poseToCell(current);
-        if(closed_set[idx]) continue;
-        closed_set[idx] = true;
-
-        for(auto & d : dirs) {
-            GraphNode neighbor = current + d;
-            if(poseOnMap(neighbor) && map_->data[poseToCell(neighbor)] == 0 && !closed_set[poseToCell(neighbor)]) {
-                neighbor.cost = current.cost + 1;
-                neighbor.heuristic = manhattanDistance(neighbor, goal_node);
-                neighbor.prev = std::make_shared<GraphNode>(current);
-                open_set.push(neighbor);
+        if (poseOnMap(new_node)) {
+            unsigned int n_idx = poseToCell(new_node);
+            unsigned char cost = costmap_->getCost(new_node.x, new_node.y);
+            
+            if (!closed_set[n_idx] && cost < 99) {
+                new_node.cost = active_node.cost + 1 + cost;
+                new_node.heuristic = manhattanDistance(new_node, goal_node);
+                new_node.prev = std::make_shared<GraphNode>(active_node);
+                pending_nodes.push(new_node);
             }
         }
     }
+  }
 
-    nav_msgs::msg::Path path;
-    path.header.frame_id = map_->header.frame_id;
-    path.header.stamp = get_clock()->now();
+  nav_msgs::msg::Path path;
+  path.header.frame_id = global_frame_;
+  path.header.stamp = node_->now();
 
-    if(found) {
-        while(current.prev) {
-            geometry_msgs::msg::PoseStamped ps;
-            ps.header = path.header;
-            ps.pose = gridToWorld(current);
-            path.poses.push_back(ps);
-            current = *current.prev;
-        }
-        std::reverse(path.poses.begin(), path.poses.end());
+  if(found) {
+    while(active_node.prev && rclcpp::ok()) {
+      geometry_msgs::msg::PoseStamped last_pose_stamped;
+      last_pose_stamped.header = path.header;
+      last_pose_stamped.pose = gridToWorld(active_node);
+      path.poses.push_back(last_pose_stamped);
+      active_node = *active_node.prev;
     }
-    return path;
+    std::reverse(path.poses.begin(), path.poses.end());
+
+    if(smooth_client_->action_server_is_ready()){
+      nav2_msgs::action::SmoothPath::Goal path_smooth;
+      path_smooth.path = path;
+      path_smooth.check_for_collisions = false;
+      path_smooth.smoother_id = "simple_smoother"; 
+      path_smooth.max_smoothing_duration.sec = 10;
+      
+      auto future = smooth_client_->async_send_goal(path_smooth);
+
+      if(future.wait_for(std::chrono::seconds(3)) == std::future_status::ready){
+        auto goal_handle = future.get();
+        if(goal_handle){
+          auto result_future = smooth_client_->async_get_result(goal_handle);
+          if(result_future.wait_for(std::chrono::seconds(3)) == std::future_status::ready){
+            auto result_path = result_future.get();
+            if(result_path.code == rclcpp_action::ResultCode::SUCCEEDED){
+              path = result_path.result->path;
+            }
+          }
+        }
+      }
+    }
+  }
+    
+  return path;
 }
 
-double AStarPlanner::manhattanDistance(const GraphNode &n, const GraphNode &g) { 
-    return std::abs(n.x - g.x) + std::abs(n.y - g.y); 
+double AStarPlanner::manhattanDistance(const GraphNode &node, const GraphNode &goal_node) {
+    return std::abs(node.x - goal_node.x) + std::abs(node.y - goal_node.y);
 }
 
-bool AStarPlanner::poseOnMap(const GraphNode & n) { 
-    return n.x >= 0 && n.x < (int)map_->info.width && n.y >= 0 && n.y < (int)map_->info.height; 
+bool AStarPlanner::poseOnMap(const GraphNode & node) {
+    return node.x >= 0 && node.x < static_cast<int>(costmap_->getSizeInCellsX()) && 
+           node.y >= 0 && node.y < static_cast<int>(costmap_->getSizeInCellsY());
 }
 
-GraphNode AStarPlanner::worldToGrid(const geometry_msgs::msg::Pose & p) { 
-    return GraphNode((p.position.x - map_->info.origin.position.x) / map_->info.resolution, 
-                     (p.position.y - map_->info.origin.position.y) / map_->info.resolution); 
+GraphNode AStarPlanner::worldToGrid(const geometry_msgs::msg::Pose & pose) {
+    int grid_x = static_cast<int>((pose.position.x - costmap_->getOriginX()) / costmap_->getResolution());
+    int grid_y = static_cast<int>((pose.position.y - costmap_->getOriginY()) / costmap_->getResolution());
+    return GraphNode(grid_x, grid_y);
 }
 
-geometry_msgs::msg::Pose AStarPlanner::gridToWorld(const GraphNode & n) {
-    geometry_msgs::msg::Pose p;
-    p.position.x = n.x * map_->info.resolution + map_->info.origin.position.x;
-    p.position.y = n.y * map_->info.resolution + map_->info.origin.position.y;
-    p.orientation.w = 1.0;
-    return p;
+geometry_msgs::msg::Pose AStarPlanner::gridToWorld(const GraphNode & node) {
+    geometry_msgs::msg::Pose pose;
+    pose.position.x = node.x * costmap_->getResolution() + costmap_->getOriginX();
+    pose.position.y = node.y * costmap_->getResolution() + costmap_->getOriginY();
+    pose.orientation.w = 1.0;
+    return pose;
 }
 
-unsigned int AStarPlanner::poseToCell(const GraphNode & n) { 
-    return map_->info.width * n.y + n.x; 
-}
+unsigned int AStarPlanner::poseToCell(const GraphNode & node) {
+    return costmap_->getSizeInCellsX() * node.y + node.x;
 }
 
-int main(int argc, char **argv) {
-    rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<ttbot_planning::AStarPlanner>());
-    rclcpp::shutdown();
-    return 0;
-}
+} 
+
+#include "pluginlib/class_list_macros.hpp"
+PLUGINLIB_EXPORT_CLASS(ttbot_planning::AStarPlanner, nav2_core::GlobalPlanner)

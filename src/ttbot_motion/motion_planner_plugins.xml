@@ -1,0 +1,7 @@
+<class_libraries>
+  <library path="ttbot_motion">
+    <class type="ttbot_motion::MpcController" base_class_type="nav2_core::Controller">
+      <description>MPC Ackermann Controller Plugin for Nav2</description>
+    </class>
+  </library>
+</class_libraries>

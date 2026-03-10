@@ -3,17 +3,8 @@
     camera:
       model: Pinhole
 
-      width: 1280
-      height: 720
-      scale: 1.0
-      
-      fx: 923.3214721679688
-      fy: 923.453125
-      cx: 643.4927978515625
-      cy: 365.1075134277344
-
-      # width: 640
-      # height: 480
+      # width: 1280
+      # height: 720
       # scale: 1.0
       
       # fx: 615.547607
