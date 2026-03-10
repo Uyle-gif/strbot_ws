@@ -7,7 +7,7 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
+find_package(fmt REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -22,6 +22,7 @@ include_directories(include)
 include_directories(
   include
   ${Eigen3_INCLUDE_DIRS} 
+  /opt/ros/humble/include
 )
 
 # --- Node Ackermann controller ---
@@ -68,6 +69,7 @@ install(
 # --- Node mpc_controller ---
 add_executable(mpc_controller src/mpc_controller.cpp)
 
+
 ament_target_dependencies(mpc_controller
     rclcpp
     nav_msgs          
@@ -85,6 +87,33 @@ target_link_libraries(mpc_controller
 install(
     TARGETS mpc_controller 
     DESTINATION lib/${PROJECT_NAME}
+)
+
+# ==========================================================
+# --- Node gmpc_controller (Bản mới - Đa tạp Lie SE(2)) ---
+# ==========================================================
+add_executable(gmpc_controller src/gmpc_controller.cpp)
+
+ament_target_dependencies(gmpc_controller 
+    rclcpp 
+    nav_msgs 
+    geometry_msgs 
+    std_msgs
+    tf2 
+    tf2_ros 
+    ament_index_cpp
+    tf2_geometry_msgs
+)
+
+target_link_libraries(gmpc_controller
+    osqp::osqp         # <-- Vẫn link với bộ giải OSQP
+    fmt::fmt
+
+)
+
+install(
+    TARGETS gmpc_controller 
+    DESTINATION lib/${PROJECT_NAME} 
 )
 
 # --- Node path_publisher ---

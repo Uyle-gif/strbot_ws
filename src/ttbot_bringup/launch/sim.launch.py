@@ -31,7 +31,12 @@ def generate_launch_description():
     arg_run_joy = DeclareLaunchArgument('run_joy', default_value='false', description='Run joystick')
 
     controller_type = LaunchConfiguration('controller_type')
-    arg_controller = DeclareLaunchArgument('controller_type', default_value='mpc')
+    # arg_controller = DeclareLaunchArgument('controller_type', default_value='mpc')
+    arg_controller = DeclareLaunchArgument(
+            'controller_type',
+            default_value='gmpc',
+            description='Controller type: mpc, gmpc, stanley'
+    )
 
     run_path = LaunchConfiguration('run_path')
     arg_run_path = DeclareLaunchArgument('run_path', default_value='false')
@@ -142,6 +147,23 @@ def generate_launch_description():
             )
         ]
     )
+    
+    gmpc_group = GroupAction(
+    condition=IfCondition(PythonExpression(["'", controller_type, "' == 'gmpc'"])),
+    actions=[
+        SetRemap(src='/cmd_vel', dst='/mpc_cmd_vel'),
+        SetRemap(src='/ackermann_controller/cmd_vel', dst='/mpc_cmd_vel'),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(pkg_controller, 'launch', 'gmpc.launch.py')
+            ),
+            launch_arguments={
+                'use_sim_time': use_sim_time,
+                'desired_speed': '1.5'
+            }.items()
+        )
+    ]
+)
 
     mpc_group = GroupAction(
         condition=IfCondition(PythonExpression(["'", controller_type, "' == 'mpc'"])),
@@ -169,7 +191,7 @@ def generate_launch_description():
 
     high_level_control_delayed = TimerAction(
         period=12.0,
-        actions=[stanley_group, mpc_group]
+        actions=[stanley_group, mpc_group, gmpc_group]
     )
 
     rviz_node = Node(

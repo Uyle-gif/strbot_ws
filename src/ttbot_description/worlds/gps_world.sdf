@@ -29,7 +29,7 @@
       <direction>-0.5 0.1 -0.9</direction>
     </light>
 
-    <!-- <model name="ground_plane">
+    <model name="ground_plane">
       <static>true</static>
       <link name="link">
         <collision name="collision">
@@ -40,14 +40,14 @@
           <material><ambient>0.8 0.8 0.8 1</ambient></material>
         </visual>
       </link>
-    </model> -->
-    <include>
+    </model>
+    <!-- <include>
       <uri>
         https://fuel.gazebosim.org/1.0/hujp/models/Campus
       </uri>
       <name>campus</name>
       <pose>-3.24 -53.09 0 0 0 1.047</pose>
-    </include>
+    </include> -->
     <!-- <include>
       <uri>
         https://fuel.gazebosim.org/1.0/zaidammag/models/baylands_terrain
