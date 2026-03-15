@@ -163,8 +163,8 @@ void GmpcController::pathCallback(const nav_msgs::msg::Path::SharedPtr msg)
 
         // 2. THUẬT TOÁN VUỐT MƯỢT GÓC (Moving Average Filter)
         // Cấu hình bo góc đủ rộng để GMPC không bị lỗi Singularity
-        int smooth_passes = 1 ; // Số lần lặp vuốt (bào mòn góc vuông)
-        int window_size = 1;    // Tầm nhìn để bo góc
+        int smooth_passes = 10 ; // Số lần lặp vuốt (bào mòn góc vuông)
+        int window_size = 2;    // Tầm nhìn để bo góc
 
         std::vector<std::pair<double, double>> smoothed_points = raw_points;
 

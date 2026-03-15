@@ -77,5 +77,5 @@ def generate_launch_description():
         localization_launch,
         delay_fast_livo,
         # delay_fast_lio,
-        delay_mapping                
+        # delay_mapping                
     ])

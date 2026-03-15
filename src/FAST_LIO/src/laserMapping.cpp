@@ -631,6 +631,10 @@ void publish_odometry(const rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPt
     odomAftMapped.child_frame_id = "base_link";
     odomAftMapped.header.stamp = get_ros_time(lidar_end_time);
     set_posestamp(odomAftMapped.pose);
+    Eigen::Vector3d vel_body = state_point.rot.conjugate() * state_point.vel;
+    odomAftMapped.twist.twist.linear.x = vel_body(0);
+    odomAftMapped.twist.twist.linear.y = vel_body(1);
+    odomAftMapped.twist.twist.linear.z = vel_body(2);
     pubOdomAftMapped->publish(odomAftMapped);
     auto P = kf.get_P();
     for (int i = 0; i < 6; i ++)
@@ -643,6 +647,15 @@ void publish_odometry(const rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPt
         odomAftMapped.pose.covariance[i*6 + 4] = P(k, 1);
         odomAftMapped.pose.covariance[i*6 + 5] = P(k, 2);
     }
+    for (int i = 0; i < 36; i++) { odomAftMapped.twist.covariance[i] = 0.0; }
+    odomAftMapped.twist.covariance[0]  = 0.05;  // Sai số Vx
+    odomAftMapped.twist.covariance[7]  = 0.05;  // Sai số Vy
+    odomAftMapped.twist.covariance[14] = 0.05;  // Sai số Vz
+    odomAftMapped.twist.covariance[21] = 0.01;  // Roll rate
+    odomAftMapped.twist.covariance[28] = 0.01;  // Pitch rate
+    odomAftMapped.twist.covariance[35] = 0.01;  // Yaw rate
+    pubOdomAftMapped->publish(odomAftMapped);
+
 
     // geometry_msgs::msg::TransformStamped trans;
     // trans.header.frame_id = "odom";
@@ -931,7 +944,7 @@ public:
         pubLaserCloudFull_body_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/cloud_registered_body", 20);
         pubLaserCloudEffect_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/cloud_effected", 20);
         pubLaserCloudMap_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/Laser_map", 20);
-        pubOdomAftMapped_ = this->create_publisher<nav_msgs::msg::Odometry>("/Odometry", 20);
+        pubOdomAftMapped_ = this->create_publisher<nav_msgs::msg::Odometry>("/Odometry", 10);
         pubPath_ = this->create_publisher<nav_msgs::msg::Path>("/fastlio_path", 20);
         tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 

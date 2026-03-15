@@ -15,25 +15,34 @@ def generate_launch_description():
     velodyne_pkg = get_package_share_directory('velodyne')
 
     default_config_path = os.path.join(fast_lio_pkg, 'config')
-    default_rviz_config_path = os.path.join(fast_lio_pkg, 'rviz', 'fastlio.rviz')
+    default_rviz_config_path = os.path.join(fast_lio_pkg, 'rviz', 'fast_lio_real.rviz')
     xsens_params_path = Path(xsens_pkg, 'param', 'xsens_mti_node.yaml')
 
 
     realsense_pkg = get_package_share_directory('realsense2_camera')
 
-    realsense_launch = GroupAction(
-        actions=[
-            SetRemap(src='/camera/camera/imu', dst='/imu/camera'), 
-            IncludeLaunchDescription(
-                PythonLaunchDescriptionSource([os.path.join(realsense_pkg, 'launch', 'rs_launch.py')]),
-                launch_arguments={
-                    'pointcloud.enable': 'false', 
-                    'enable_gyro': 'true',       
-                    'enable_accel': 'true',      
-                    'unite_imu_method': '2',     
-                }.items()
-            )
-        ]
+    # realsense_launch = GroupAction(
+    #     actions=[
+    #         SetRemap(src='/camera/camera/imu', dst='/imu/camera'), 
+    #         IncludeLaunchDescription(
+    #             PythonLaunchDescriptionSource([os.path.join(realsense_pkg, 'launch', 'rs_launch.py')]),
+    #             launch_arguments={
+    #                 'pointcloud.enable': 'false', 
+    #                 'enable_gyro': 'true',       
+    #                 'enable_accel': 'true',      
+    #                 'unite_imu_method': '2',     
+    #             }.items()
+    #         )
+    #     ]
+    # )
+
+    realsense_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([os.path.join(realsense_pkg, 'launch', 'rs_launch.py')]),
+        launch_arguments={
+            'pointcloud.enable': 'false', 
+            'enable_gyro': 'false',      # Tắt hoàn toàn Gyro của camera
+            'enable_accel': 'false',     # Tắt hoàn toàn Accel của camera
+        }.items()
     )
 
 
@@ -58,7 +67,7 @@ def generate_launch_description():
         package='fast_lio',
         executable='fastlio_mapping',
         parameters=[
-            os.path.join(default_config_path, 'velodyne.yaml'),
+            os.path.join(default_config_path, 'velodyne_real.yaml'),
             {'use_sim_time': use_sim_time}
         ],
         output='screen'
@@ -67,6 +76,7 @@ def generate_launch_description():
     rviz_node = Node(
         package='rviz2',
         executable='rviz2',
+        arguments=['-d', default_rviz_config_path],  
         output='screen'
     )
 
@@ -74,7 +84,7 @@ def generate_launch_description():
 
     ld.add_action(SetEnvironmentVariable('RCUTILS_LOGGING_USE_STDOUT', '1'))
     ld.add_action(SetEnvironmentVariable('RCUTILS_LOGGING_BUFFERED_STREAM', '1'))
-    ld.add_action(realsense_launch)
+    # ld.add_action(realsense_launch)
     ld.add_action(xsens_mti_node)
     ld.add_action(velodyne_launch)
     ld.add_action(fast_lio_node)

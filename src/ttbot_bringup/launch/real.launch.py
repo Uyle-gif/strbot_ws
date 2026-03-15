@@ -166,11 +166,12 @@ def generate_launch_description():
                     'output_odom_topic': '/mpc_state',
                     'cmd_vel_topic': '/ackermann_controller/cmd_vel',
                     # --- Bổ sung toàn bộ thông số lọc nhiễu vào đây ---
-                    'alpha_x': 0.6,    
-                    'alpha_y': 0.6,
-                    'alpha_yaw': 0.6,
-                    'alpha_v': 0.4,    
-                    'alpha_wz': 0.4,
+                    'alpha_x': 1.0,    
+                    'alpha_y': 1.0,
+                    'alpha_yaw': 1.0,
+                    'alpha_v': 1.0,    
+                    'alpha_wz': 1.0,
+                    
                     'max_v_rate': 3.0,
                     'max_wz_rate': 4.0,
                     'v_standstill_threshold': 0.05,

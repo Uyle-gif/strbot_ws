@@ -47,7 +47,7 @@ def generate_launch_description():
     # --------------------------------------------------------------------------
     N_p_arg = DeclareLaunchArgument(
         "N_p",
-        default_value="20",
+        default_value="10",
         description="Prediction horizon"
     )
 
@@ -86,7 +86,7 @@ def generate_launch_description():
 
     R_omega_arg = DeclareLaunchArgument(
         "R_omega",
-        default_value="0.6",
+        default_value="0.5",
         description="Weight for angular velocity control effort"
     )
 

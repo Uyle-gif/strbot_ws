@@ -8,7 +8,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     
     path_file_arg = DeclareLaunchArgument(
-        "path_file", default_value="path_8_small.csv",
+        "path_file", default_value="path_straight7_right7.csv",
         description="Name of the CSV file inside 'path' folder"
     )
 

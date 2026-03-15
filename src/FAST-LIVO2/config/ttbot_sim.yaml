@@ -34,7 +34,7 @@
       filter_size_surf: 0.1
       lidar_type: 2         # BẮT BUỘC LÀ 2: Dành cho Velodyne (PointCloud2 chuẩn)
       scan_line: 16         # Velodyne VLP-16 có 16 tia
-      blind: 0.6           # Giới hạn điểm mù 0.6m (tránh nhìn thấy khung xe)
+      blind: 0.0           # Giới hạn điểm mù 0.6m (tránh nhìn thấy khung xe)
 
     vio:
       max_iterations: 5

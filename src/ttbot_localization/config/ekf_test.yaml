@@ -38,6 +38,8 @@ ekf_filter_node:
       base_link_frame: base_link  # Defaults to "base_link" if unspecified
       world_frame: odom           # Defaults to the value of odom_frame if unspecified
 
+      smooth_lagged_data: true
+      history_length: 0.5
       
 
       # # IMU Configuration
@@ -53,30 +55,34 @@ ekf_filter_node:
       imu0_config: [false, false, false,
                     false, false, false,
                     false, false, false,
-                    false, false, true,
-                    false,  false, false]
-
-      imu0_differential: true
+                    false, false, true,    # Vyaw
+                    true,  false, false]   # Ax
+                    
+      imu0_differential: false
       imu0_pose_use_child_frame: false
+      # Tăng queue_size lên 50 vì 400Hz dội dữ liệu về rất nhanh
+      imu0_queue_size: 50
 
       # # The filter accepts an arbitrary number of inputs from each input message type (nav_msgs/Odometry,
       # # geometry_msgs/PoseWithCovarianceStamped, geometry_msgs/TwistWithCovarianceStamped,
       # # sensor_msgs/Imu). To add an input, simply append the next number in the sequence to its "base" name, e.g., odom0,
       # # odom1, twist0, twist1, imu0, imu1, imu2, etc. The value should be the topic name. These parameters obviously have no
       # # default values, and must be specified.
-      # odom0: /ackermann_controller/odom
-      # # # Each sensor reading updates some or all of the filter's state. These options give you greater control over which
-      # # # values from each measurement are fed to the filter. For example, if you have an odometry message as input, but only
-      # # # want to use its Z position value, then set the entire vector to false, except for the third entry. The order of the
-      # # # values is x, y, z, roll, pitch, yaw, vx, vy, vz, vroll, vpitch, vyaw, ax, ay, az. Note that not some message types
-      # # # do not provide some of the state variables estimated by the filter. For example, a TwistWithCovarianceStamped message
-      # # # has no pose information, so the first six values would be meaningless in that case. Each vector defaults to all false
-      # # # if unspecified, effectively making this parameter required for each sensor.
-      # odom0_config: [false, false, false,
-      #                false, false, false,
-      #                true,  false,  false,
-      #                false, false, false,
-      #                false, false, false]
+      # INPUT 1: WHEEL ODOMETRY (Tần số: 50Hz) 
+      # Vai trò: Cung cấp đà di chuyển liên tục (Vận tốc thẳng)
+      # =========================================================
+      odom0: /ackermann_controller/odom
+      
+      # Chỉ lấy Vận tốc X (Vx)
+      odom0_config: [false, false, false,
+                     false, false, false,
+                     true,  false, false,  # Vx
+                     false, false, false,
+                     false, false, false]
+                     
+      odom0_differential: false
+      odom0_relative: false
+      odom0_queue_size: 10
 
       # # # [ADVANCED] When measuring one pose variable with two sensors, a situation can arise in which both sensors under-
       # # # report their covariances. This can lead to the filter rapidly jumping back and forth between each measurement as they
@@ -92,21 +98,21 @@ ekf_filter_node:
       # ---------------------------------------------------------
       # INPUT 3: FAST-LIO (Lidar Odometry) - Topic: /Odometry
       # ---------------------------------------------------------
-      odom0: /Odometry   # <-- Đây là topic Output của FAST-LIO/FAST_LIVO2, chứa vị trí tuyệt đối của robot. Ta sẽ tin tưởng nó hơn bánh xe, vì bánh xe có thể bị trôi do trượt, nhưng FAST-LIO thì không.
+      odom1: /Odometry   # <-- Đây là topic Output của FAST-LIO/FAST_LIVO2, chứa vị trí tuyệt đối của robot. Ta sẽ tin tưởng nó hơn bánh xe, vì bánh xe có thể bị trôi do trượt, nhưng FAST-LIO thì không.
       
       # Chiến thuật: FAST-LIO rất chính xác, ta dùng nó để "neo" vị trí robot lại, chống trôi cho bánh xe.
       # Ta tin VỊ TRÍ (X, Y, Z) và GÓC (Roll, Pitch, Yaw) của nó.
-      odom0_config: [true,  true,  false,  # X, Y, Z
+      odom1_config: [true,  true,  false,  # X, Y, Z
                     false,  false,  true,  # Roll, Pitch, Yaw
                     false, false, false,
                     false, false, false,
                     false, false, false]
                     
-      odom0_differential: false   # FAST-LIO đã cho ra vị trí tuyệt đối rồi, không cần chuyển thành tốc độ nữa.
+      odom1_differential: false   # FAST-LIO đã cho ra vị trí tuyệt đối rồi, không cần chuyển thành tốc độ nữa.
 
-      odom0_relative: false
+      odom1_relative: false
 
-      odom0_queue_size: 10 
+      odom1_queue_size: 10 
 
       # [ADVANCED] The process noise covariance matrix can be difficult to tune, and can vary for each application, so it is
       # exposed as a configuration parameter. This matrix represents the noise we add to the total error after each

@@ -1429,7 +1429,18 @@ void LIVMapper::publish_odometry(const rclcpp::Publisher<nav_msgs::msg::Odometry
   odomAftMapped.header.frame_id = "odom";
   odomAftMapped.child_frame_id = "base_link";
   odomAftMapped.header.stamp = this->node->get_clock()->now(); //.ros::Time()fromSec(last_timestamp_lidar);
+  
   set_posestamp(odomAftMapped.pose.pose);
+
+  Eigen::Vector3d vel_body = _state.rot_end.conjugate() * _state.vel_end;
+  odomAftMapped.twist.twist.linear.x = vel_body(0);
+  odomAftMapped.twist.twist.linear.y = vel_body(1);
+  odomAftMapped.twist.twist.linear.z = vel_body(2);
+
+  for (int i = 0; i < 36; i++) {
+      odomAftMapped.pose.covariance[i] = 0.0;
+      odomAftMapped.twist.covariance[i] = 0.0;
+  }
   
   odomAftMapped.pose.covariance[0]  = 0.05;  // X variance
   odomAftMapped.pose.covariance[7]  = 0.05;  // Y variance
@@ -1437,6 +1448,15 @@ void LIVMapper::publish_odometry(const rclcpp::Publisher<nav_msgs::msg::Odometry
   odomAftMapped.pose.covariance[21] = 0.05;  // Roll variance
   odomAftMapped.pose.covariance[28] = 0.05;  // Pitch variance
   odomAftMapped.pose.covariance[35] = 0.05;  // Yaw variance
+
+
+  odomAftMapped.twist.covariance[0]  = 0.05;  // Vận tốc tiến Vx
+  odomAftMapped.twist.covariance[7]  = 0.05;  // Vận tốc trượt ngang Vy
+  odomAftMapped.twist.covariance[35] = 0.01;  // Tốc độ xoay vYaw
+  
+  odomAftMapped.twist.covariance[14] = 99999.0; // Vz
+  odomAftMapped.twist.covariance[21] = 99999.0; // vRoll
+  odomAftMapped.twist.covariance[28] = 99999.0; // vPitch
 
   // static std::shared_ptr<tf2_ros::TransformBroadcaster> br;
   // br = std::make_shared<tf2_ros::TransformBroadcaster>(this->node);
