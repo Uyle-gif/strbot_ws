@@ -58,7 +58,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         use_sim_time_arg,
-       local_localization_launch,
+        local_localization_launch,
        # navsat_transform_node,
        # ekf_global_node
     ])

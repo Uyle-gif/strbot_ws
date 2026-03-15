@@ -66,7 +66,7 @@
 
         // --- Khởi tạo Subscribers (Giữ nguyên topics cũ của hệ thống) ---
         odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-            "/odometry/filtered", 10,
+            "/mpc_state", 10,
             std::bind(&GmpcController::odomCallback, this, std::placeholders::_1));
 
         path_sub_ = this->create_subscription<nav_msgs::msg::Path>(
@@ -108,12 +108,6 @@ void GmpcController::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
         return;
     }
 
-    auto wrapAngle = [](double a) {
-        while (a > M_PI)  a -= 2.0 * M_PI;
-        while (a < -M_PI) a += 2.0 * M_PI;
-        return a;
-    };
-
     double x = msg->pose.pose.position.x;
     double y = msg->pose.pose.position.y;
     double yaw = tf2::getYaw(msg->pose.pose.orientation);
@@ -123,16 +117,10 @@ void GmpcController::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
     current_pose_yaw_ = yaw;
     has_odom_ = true;
 
+    // 1. Tìm điểm gần nhất trên quỹ đạo
     size_t idx = findClosestPoint(x, y);
 
-    double rx, ry, rpsi;
-    computeReference(idx, rx, ry, rpsi);
-
-    mpc_ref_x_ = rx;
-    mpc_ref_y_ = ry;
-    mpc_ref_yaw_ = rpsi;
-    is_ref_set_ = true;
-
+    // 2. Kiểm tra xem đã đến đích chưa
     double dx_g = x - path_points_.back().first;
     double dy_g = y - path_points_.back().second;
     double dist_to_goal = std::sqrt(dx_g * dx_g + dy_g * dy_g);
@@ -146,29 +134,10 @@ void GmpcController::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
         return;
     }
 
-    double ex, ey, epsi;
-    computeErrorState(x, y, yaw, rx, ry, rpsi, ex, ey, epsi);
+    // 3. Đưa tọa độ và index thẳng vào bộ LTV-GMPC để giải
+    Control u = solveMPC(x, y, yaw, idx);
 
-    std_msgs::msg::Float32 lon_msg, cte_msg, head_msg;
-    lon_msg.data = ex;
-    cte_msg.data = ey;
-    head_msg.data = epsi * 180.0 / M_PI;
-    error_lon_pub_->publish(lon_msg);
-    error_cte_pub_->publish(cte_msg);
-    error_heading_pub_->publish(head_msg);
-
-    double v_ref = desired_speed_;
-    double omega_ref = 0.0;
-
-    if (idx + 1 < path_points_.size()) {
-        double rx2, ry2, rpsi2;
-        computeReference(std::min(idx + 1, path_points_.size() - 1), rx2, ry2, rpsi2);
-        omega_ref = wrapAngle(rpsi2 - rpsi) / dt_mpc_;
-        omega_ref = std::clamp(omega_ref, -max_omega_, max_omega_);
-    }
-
-    Control u = solveMPC(ex, ey, epsi, v_ref, omega_ref);
-
+    // 4. Xuất lệnh điều khiển xuống xe
     geometry_msgs::msg::TwistStamped cmd;
     cmd.header.stamp = this->now();
     cmd.header.frame_id = "base_link";
@@ -176,11 +145,8 @@ void GmpcController::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
     cmd.twist.angular.z = u[1];
     cmd_pub_->publish(cmd);
 }
-
-    void GmpcController::pathCallback(const nav_msgs::msg::Path::SharedPtr msg)
+void GmpcController::pathCallback(const nav_msgs::msg::Path::SharedPtr msg)
     {
-        path_points_.clear();
-
         if (msg->poses.empty()) {
             has_path_ = false;
             current_index_ = 0;
@@ -188,18 +154,53 @@ void GmpcController::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
             return;
         }
 
-        path_points_.reserve(msg->poses.size());
+        // 1. Lấy dữ liệu raw từ topic
+        std::vector<std::pair<double, double>> raw_points;
+        raw_points.reserve(msg->poses.size());
         for (const auto &pose : msg->poses) {
-            path_points_.emplace_back(pose.pose.position.x, pose.pose.position.y);
+            raw_points.emplace_back(pose.pose.position.x, pose.pose.position.y);
         }
 
+        // 2. THUẬT TOÁN VUỐT MƯỢT GÓC (Moving Average Filter)
+        // Cấu hình bo góc đủ rộng để GMPC không bị lỗi Singularity
+        int smooth_passes = 1 ; // Số lần lặp vuốt (bào mòn góc vuông)
+        int window_size = 1;    // Tầm nhìn để bo góc
+
+        std::vector<std::pair<double, double>> smoothed_points = raw_points;
+
+        for (int pass = 0; pass < smooth_passes; ++pass) {
+            std::vector<std::pair<double, double>> temp_points = smoothed_points;
+            
+            // Bỏ qua điểm đầu và cuối để giữ nguyên mốc xuất phát/đích
+            for (size_t i = 1; i < smoothed_points.size() - 1; ++i) {
+                double sum_x = 0.0;
+                double sum_y = 0.0;
+                int count = 0;
+
+                int start_j = std::max(0, (int)i - window_size);
+                int end_j = std::min((int)smoothed_points.size() - 1, (int)i + window_size);
+
+                for (int j = start_j; j <= end_j; ++j) {
+                    sum_x += smoothed_points[j].first;
+                    sum_y += smoothed_points[j].second;
+                    count++;
+                }
+
+                temp_points[i].first = sum_x / count;
+                temp_points[i].second = sum_y / count;
+            }
+            smoothed_points = temp_points;
+        }
+
+        // 3. Cập nhật quỹ đạo đã làm mượt vào hệ thống
+        path_points_ = smoothed_points;
         current_index_ = 0;
         has_path_ = true;
         reached_goal_ = false;
 
         RCLCPP_INFO(this->get_logger(),
-                    "--> GMPC RECEIVED NEW PATH: %zu points.", path_points_.size());
-    }
+                    "--> GMPC RECEIVED AND SMOOTHED PATH: %zu points.", path_points_.size());
+    }    
 
     void GmpcController::mpcTuningCallback(const std_msgs::msg::Float32MultiArray::SharedPtr msg)
     {
@@ -210,83 +211,122 @@ void GmpcController::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
     // ==============================================================================
     // 3. TOÁN HỌC GMPC & LÕI TỐI ƯU
     // ==============================================================================
- Control GmpcController::solveMPC(double ex0, double ey0, double epsi0,
-                                 double v_ref, double omega_ref)
+ Control GmpcController::solveMPC(double x0, double y0, double yaw0, size_t start_idx)
 {
+    auto start_time = std::chrono::high_resolution_clock::now();
     freeOSQPMemory();
 
-    const int nx = 3;          // [ex, ey, epsi]
-    const int nu = 2;          // [dv, domega] hoặc u_tilde
-    const int N  = N_p_;
+    const int nx = 3;            // [ex, ey, epsi]
+    const int nu = 2;            // [dv, domega]
+    const int N  = N_p_;         // Horizon
     const int nx_aug = nx + nu;  // [xi, u_tilde_prev]
-
+    
     const int n_vars = (N + 1) * nx_aug + N * nu;
     const int n_cons = (N + 1) * nx_aug + N * nu;
 
-    linearizeErrorModel(v_ref, omega_ref, dt_mpc_);
-
-    // x_aug(k+1) = A_bar * x_aug(k) + B_bar * delta_u_tilde(k)
-    Eigen::MatrixXd A_bar = Eigen::MatrixXd::Zero(nx_aug, nx_aug);
-    A_bar.block(0, 0, nx, nx) = Ad_;
-    A_bar.block(0, nx, nx, nu) = Bd_;
-    A_bar.block(nx, nx, nu, nu) = Eigen::Matrix2d::Identity();
-
-    Eigen::MatrixXd B_bar = Eigen::MatrixXd::Zero(nx_aug, nu);
-    B_bar.block(0, 0, nx, nu) = Bd_;
-    B_bar.block(nx, 0, nu, nu) = Eigen::Matrix2d::Identity();
+    auto wrapAngle = [](double a) {
+        while (a > M_PI)  a -= 2.0 * M_PI;
+        while (a < -M_PI) a += 2.0 * M_PI;
+        return a;
+    };
 
     // -------------------------------------------------------------------------
-    // 1) Hessian P
+    // 1. TẠO MẢNG QUỸ ĐẠO THAM CHIẾU TRONG TƯƠNG LAI (REFERENCE TRAJECTORY)
+    // -------------------------------------------------------------------------
+    struct RefPoint { double x, y, yaw, v, omega; };
+    std::vector<RefPoint> ref_traj(N + 1);
+
+    for (int k = 0; k <= N; ++k) {
+        size_t traj_idx = std::min(start_idx + k, path_points_.size() - 1);
+        double rx, ry, rpsi;
+        computeReference(traj_idx, rx, ry, rpsi);
+        
+        double v_ref = desired_speed_;
+        double omega_ref = 0.0;
+        
+        // Tính omega_ref tại điểm đó dựa trên độ cong của đường
+        if (traj_idx + 1 < path_points_.size()) {
+            double rx2, ry2, rpsi2;
+            computeReference(std::min(traj_idx + 1, path_points_.size() - 1), rx2, ry2, rpsi2);
+            omega_ref = wrapAngle(rpsi2 - rpsi) / dt_mpc_;
+            omega_ref = std::clamp(omega_ref, -max_omega_, max_omega_);
+        }
+        ref_traj[k] = {rx, ry, rpsi, v_ref, omega_ref};
+    }
+
+    // -------------------------------------------------------------------------
+    // 2. TÍNH LỖI HIỆN TẠI (TẠI K = 0) DÙNG LIE ALGEBRA SE(2)
+    // -------------------------------------------------------------------------
+    double ex0, ey0, epsi0;
+    computeErrorState(x0, y0, yaw0, ref_traj[0].x, ref_traj[0].y, ref_traj[0].yaw, ex0, ey0, epsi0);
+
+    // Publish Error cho RQT Plot / Đánh giá
+    std_msgs::msg::Float32 lon_msg, cte_msg, head_msg;
+    lon_msg.data = ex0;
+    cte_msg.data = ey0;
+    head_msg.data = epsi0 * 180.0 / M_PI;
+    error_lon_pub_->publish(lon_msg);
+    error_cte_pub_->publish(cte_msg);
+    error_heading_pub_->publish(head_msg);
+
+    // -------------------------------------------------------------------------
+    // 3. XÂY DỰNG MA TRẬN HESSIAN P (Chi phí tối ưu)
     // -------------------------------------------------------------------------
     Eigen::SparseMatrix<double> P(n_vars, n_vars);
     std::vector<Eigen::Triplet<double>> p_triplets;
 
-    // Phạt error state cho mọi k
     for (int k = 0; k <= N; ++k) {
         const int offset = k * nx_aug;
         p_triplets.emplace_back(offset + 0, offset + 0, Q_ex_);
         p_triplets.emplace_back(offset + 1, offset + 1, Q_ey_);
         p_triplets.emplace_back(offset + 2, offset + 2, Q_epsi_);
 
-        // Phạt u_tilde_k nằm trong x_aug(k), nhưng bỏ qua k=0 vì đó là state cố định
         if (k > 0) {
             p_triplets.emplace_back(offset + 3, offset + 3, R_v_);
             p_triplets.emplace_back(offset + 4, offset + 4, R_omega_);
         }
     }
 
-    // Phạt delta_u_tilde
     const int du_start = (N + 1) * nx_aug;
     for (int k = 0; k < N; ++k) {
         const int offset = du_start + k * nu;
         p_triplets.emplace_back(offset + 0, offset + 0, R_dv_);
         p_triplets.emplace_back(offset + 1, offset + 1, R_domega_);
     }
-
     P.setFromTriplets(p_triplets.begin(), p_triplets.end());
 
     // -------------------------------------------------------------------------
-    // 2) Constraint matrix A_cons
+    // 4. XÂY DỰNG RÀNG BUỘC ĐỘNG HỌC LTV-MPC (THAY ĐỔI THEO THỜI GIAN)
     // -------------------------------------------------------------------------
     Eigen::SparseMatrix<double> A_cons(n_cons, n_vars);
     std::vector<Eigen::Triplet<double>> a_triplets;
     Eigen::VectorXd l_bounds = Eigen::VectorXd::Zero(n_cons);
     Eigen::VectorXd u_bounds = Eigen::VectorXd::Zero(n_cons);
 
-    // x_aug(0) = [xi0, u_tilde_prev]
-    const double v_tilde_prev = prev_v_cmd_ - v_ref;
-    const double omega_tilde_prev = prev_omega_cmd_ - omega_ref;
+    const double v_tilde_prev = prev_v_cmd_ - ref_traj[0].v;
+    const double omega_tilde_prev = prev_omega_cmd_ - ref_traj[0].omega;
 
+    // Khởi tạo điều kiện ban đầu x_aug(0)
     for (int i = 0; i < nx_aug; ++i) {
         a_triplets.emplace_back(i, i, 1.0);
     }
-
     l_bounds.segment(0, nx_aug) << ex0, ey0, epsi0, v_tilde_prev, omega_tilde_prev;
     u_bounds.segment(0, nx_aug) << ex0, ey0, epsi0, v_tilde_prev, omega_tilde_prev;
 
-    // Dynamics:
-    // x_aug(k+1) - A_bar*x_aug(k) - B_bar*delta_u_tilde(k) = 0
+    // Ràng buộc động học: TÍNH LẠI A_bar, B_bar CHO MỖI BƯỚC k
     for (int k = 0; k < N; ++k) {
+        // [CỐT LÕI]: Cập nhật Jacobian liên tục dựa trên v, omega ở tương lai
+        linearizeErrorModel(ref_traj[k].v, ref_traj[k].omega, dt_mpc_);
+        
+        Eigen::MatrixXd A_bar = Eigen::MatrixXd::Zero(nx_aug, nx_aug);
+        A_bar.block(0, 0, nx, nx) = Ad_;
+        A_bar.block(0, nx, nx, nu) = Bd_;
+        A_bar.block(nx, nx, nu, nu) = Eigen::Matrix2d::Identity();
+
+        Eigen::MatrixXd B_bar = Eigen::MatrixXd::Zero(nx_aug, nu);
+        B_bar.block(0, 0, nx, nu) = Bd_;
+        B_bar.block(nx, 0, nu, nu) = Eigen::Matrix2d::Identity();
+
         const int row_offset = nx_aug + k * nx_aug;
         const int xk_offset = k * nx_aug;
         const int xk1_offset = (k + 1) * nx_aug;
@@ -299,11 +339,9 @@ void GmpcController::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
                 }
             }
         }
-
         for (int i = 0; i < nx_aug; ++i) {
             a_triplets.emplace_back(row_offset + i, xk1_offset + i, 1.0);
         }
-
         for (int r = 0; r < nx_aug; ++r) {
             for (int c = 0; c < nu; ++c) {
                 if (std::abs(B_bar(r, c)) > 1e-12) {
@@ -313,7 +351,7 @@ void GmpcController::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
         }
     }
 
-    // Input bounds đặt trên u_tilde_k = x_aug(k+1).tail(2)
+    // Giới hạn vật lý của Input U (Dựa trên v_ref, omega_ref ĐỘNG)
     const int input_cons_start = (N + 1) * nx_aug;
     for (int k = 0; k < N; ++k) {
         const int row = input_cons_start + k * nu;
@@ -322,18 +360,17 @@ void GmpcController::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
         a_triplets.emplace_back(row + 0, col + 0, 1.0);
         a_triplets.emplace_back(row + 1, col + 1, 1.0);
 
-        // Bound của u_tilde = u - u_ref
-        l_bounds(row + 0) = 0.0 - v_ref;
-        u_bounds(row + 0) = desired_speed_ - v_ref;
+        l_bounds(row + 0) = 0.0 - ref_traj[k].v;
+        u_bounds(row + 0) = desired_speed_ - ref_traj[k].v;
 
-        l_bounds(row + 1) = -max_omega_ - omega_ref;
-        u_bounds(row + 1) =  max_omega_ - omega_ref;
+        l_bounds(row + 1) = -max_omega_ - ref_traj[k].omega;
+        u_bounds(row + 1) =  max_omega_ - ref_traj[k].omega;
     }
 
     A_cons.setFromTriplets(a_triplets.begin(), a_triplets.end());
 
     // -------------------------------------------------------------------------
-    // 3) Convert to OSQP CSC
+    // 5. CHUYỂN ĐỔI SANG OSQP CSC VÀ GIẢI
     // -------------------------------------------------------------------------
     OSQPCscMatrix P_osqp, A_osqp;
     eigenToOSQPCsc(P, P_osqp, P_x_, P_i_, P_p_);
@@ -348,35 +385,39 @@ void GmpcController::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
         u_data_[i] = static_cast<OSQPFloat>(u_bounds(i));
     }
 
-    // -------------------------------------------------------------------------
-    // 4) Solve
-    // -------------------------------------------------------------------------
     settings_ = (OSQPSettings*)malloc(sizeof(OSQPSettings));
     osqp_set_default_settings(settings_);
     settings_->verbose = 0;
     settings_->warm_starting = 1;
 
-    osqp_setup(&solver_, &P_osqp, q_data_, &A_osqp, l_data_, u_data_,
-               n_cons, n_vars, settings_);
+    osqp_setup(&solver_, &P_osqp, q_data_, &A_osqp, l_data_, u_data_, n_cons, n_vars, settings_);
     osqp_solve(solver_);
 
-    double v_opt = v_ref;
-    double omega_opt = omega_ref;
+    // -------------------------------------------------------------------------
+    // 6. TRÍCH XUẤT NGHIỆM ĐIỀU KHIỂN (CONTROL EFFORT)
+    // -------------------------------------------------------------------------
+    double v_opt = ref_traj[0].v;
+    double omega_opt = ref_traj[0].omega;
 
     if (solver_ && solver_->info && solver_->info->status_val == OSQP_SOLVED) {
-        // x_aug(1) chứa u_tilde_0
         const int first_utilde_offset = nx_aug + nx;
         const double dv_opt = solver_->solution->x[first_utilde_offset + 0];
         const double domega_opt = solver_->solution->x[first_utilde_offset + 1];
 
-        v_opt = std::clamp(v_ref + dv_opt, 0.0, desired_speed_);
-        omega_opt = std::clamp(omega_ref + domega_opt, -max_omega_, max_omega_);
+        // Cộng delta vào reference tại bước 0 để ra lệnh thực tế
+        v_opt = std::clamp(ref_traj[0].v + dv_opt, 0.0, desired_speed_);
+        omega_opt = std::clamp(ref_traj[0].omega + domega_opt, -max_omega_, max_omega_);
     } else {
         RCLCPP_WARN(this->get_logger(), "GMPC OSQP failed, fallback to reference input.");
     }
 
     prev_v_cmd_ = v_opt;
     prev_omega_cmd_ = omega_opt;
+    
+    auto end_time = std::chrono::high_resolution_clock::now();
+    double solver_time_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(end_time - start_time).count();
+    
+    RCLCPP_INFO(this->get_logger(), "\033[1;33m[LTV-GMPC] Matrix + OSQP Time: %.3f ms\033[0m", solver_time_ms);
 
     return {v_opt, omega_opt};
 }

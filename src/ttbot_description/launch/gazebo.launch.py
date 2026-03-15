@@ -71,9 +71,10 @@ def generate_launch_description():
             "-topic", "robot_description",
             "-name", "ttbot",
             
-            "-x", "0.0",  
-            "-y", "0.0",  
-            "-z", "2"   # Thả từ độ cao 0.5m (để tránh kẹt bánh vào đất)
+            "-x", "-10.0",  # Đặt vị trí khởi tạo xa hơn về phía trước để tránh va chạm với tường
+            "-y", "4.0",  # Đặt vị trí khởi tạo xa hơn về phía trước để tránh va chạm với tường
+            "-z", "0.5",   # Thả từ độ cao 0.5m (để tránh kẹt bánh vào đất)
+            "-Y", "0.0"    # Đặt góc quay ban đầu (yaw) của robot, nếu cần thiết
         ],
     )
 

@@ -140,9 +140,49 @@ def generate_launch_description():
         ]
     )
 
+    gmpc_group = GroupAction(
+        condition=IfCondition(PythonExpression(["'", controller_type, "' == 'gmpc'"])),
+        actions=[
+            SetRemap(src='/cmd_vel', dst='/mpc_cmd_vel'),
+            SetRemap(src='/ackermann_controller/cmd_vel', dst='/mpc_cmd_vel'),
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(os.path.join(pkg_controller, 'launch', 'gmpc.launch.py')),
+                launch_arguments={'use_sim_time': use_sim_time}.items()
+            )
+        ]
+    )
+    mpc_filter_node = TimerAction(
+        period=6.0, 
+        actions=[
+            Node(
+                package='ttbot_controller',
+                executable='mpc_state_filter.py',
+                name='mpc_state_filter',
+                output='screen',
+                parameters=[{
+                    'use_sim_time': use_sim_time,
+
+                    'input_odom_topic': '/odometry/filtered',
+                    'output_odom_topic': '/mpc_state',
+                    'cmd_vel_topic': '/ackermann_controller/cmd_vel',
+                    # --- Bổ sung toàn bộ thông số lọc nhiễu vào đây ---
+                    'alpha_x': 0.6,    
+                    'alpha_y': 0.6,
+                    'alpha_yaw': 0.6,
+                    'alpha_v': 0.4,    
+                    'alpha_wz': 0.4,
+                    'max_v_rate': 3.0,
+                    'max_wz_rate': 4.0,
+                    'v_standstill_threshold': 0.05,
+                    'wz_standstill_threshold': 0.05
+                }]
+            )
+        ]
+    )
+
     high_level_control = TimerAction(
         period=8.0,
-        actions=[stanley_group, mpc_group]
+        actions=[stanley_group, mpc_group, gmpc_group] 
     )
 
 
@@ -188,17 +228,16 @@ def generate_launch_description():
         #arg_stm32,
 
 
-        robot_state_publisher,
+        # robot_state_publisher,
         
-        sensors_launch,   
+        # sensors_launch,   
         
         ackermann_node,   
-        qgc_bridge_node,
-        
+        # qgc_bridge_node,
+        mpc_filter_node,
         joy_launch_group, 
         stamped_mux_node,   
-
-        localization_launch,
+  #      localization_launch,
         path_pub_launch,
         high_level_control, 
     ])

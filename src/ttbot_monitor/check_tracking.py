@@ -10,7 +10,7 @@ class PathTrackingEval(Node):
     def __init__(self):
         super().__init__('path_tracking_eval')
         # Đảm bảo topic khớp với Dual EKF và Path Publisher của bạn
-        self.sub_odom = self.create_subscription(Odometry, '/odometry/filtered', self.odom_callback, 10)
+        self.sub_odom = self.create_subscription(Odometry, '/mpc_state', self.odom_callback, 10)
         self.sub_path = self.create_subscription(Path, '/mpc_path', self.path_callback, 10)
         
         self.robot_x, self.robot_y = [], []

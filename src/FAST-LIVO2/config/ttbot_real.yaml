@@ -2,16 +2,14 @@
   ros__parameters:
     common:
       img_topic: "/camera/camera/color/image_raw"
-      lid_topic: "/velodyne_points"              ## Đảm bảo rằng đây là topic PointCloud2 chuẩn từ Velodyne
-      imu_topic: "/imu/data"                             ##      imu_topic: "/imu/data"                            
+      lid_topic: "/velodyne_points"              
+      imu_topic: "/imu/data"                                                    
       img_en: 1
       lidar_en: 1
       ros_driver_bug_fix: false
 
-##############################33################# CALIB HET LAI #####################################
     extrin_calib:
     
-      # Khoảng cách từ IMU (ở camera) 
       extrinsic_T: [0.0, 0.0, 0.07]
       # extrinsic_R: [0.0, -1.0, 0.0, 
       #               1.0, 0.0, 0.0, 
@@ -20,33 +18,24 @@
                     -1.0,  0.0,  0.0, 
                      0.0,  0.0,  1.0]
       
-      # Ma trận xoay từ Hệ quang học Camera (Optical Frame) sang Lidar
-      # (Z camera cắm tới trước = X lidar, X camera sang phải = -Y lidar, Y camera chúc xuống = -Z lidar)
-      # Rcl: [ 0.0,  -1.0,  0.0,
-      #        0.0,  0.0,  -1.0,
-      #        1.0, 0.0,  0.0]
-      # Rcl: [-1.0,  0.0,  0.0,
-      #        0.0,  0.0, -1.0,
-      #        0.0, -1.0,  0.0]
-      # Ma trận đã lật ngược hình lại cho đúng chiều trên/dưới
+      
       Rcl: [ 1.0,  0.0,  0.0,
              0.0,  0.0, -1.0,
              0.0,  1.0,  0.0]
       
-      # Vị trí của Camera (0.5, 0, 0.65) so với gốc tọa độ Lidar (0, 0, 0.8)
       Pcl: [0.10, -0.02, -0.04]
 
     time_offset: 
       imu_time_offset: 0.0
-      img_time_offset: 0.0 # Mô phỏng nên đồng bộ thời gian hoàn hảo
+      img_time_offset: 0.0 
       exposure_time_init: 0.0
 
     preprocess:
       point_filter_num: 1
       filter_size_surf: 0.1
-      lidar_type: 2         # BẮT BUỘC LÀ 2: Dành cho Velodyne (PointCloud2 chuẩn)
-      scan_line: 16         # Velodyne VLP-16 có 16 tia
-      blind: 0.6           # Giới hạn điểm mù 0.6m (tránh nhìn thấy khung xe)
+      lidar_type: 2        
+      scan_line: 16         
+      blind: 0.0        
 
     vio:
       max_iterations: 5
@@ -88,7 +77,7 @@
       gravity_align_en: false
 
     publish:
-      dense_map_en: true
+      dense_map_en: false  # true nếu muốn publish dense map, false nếu chỉ publish sparse map
       pub_effect_point_en: false 
       pub_plane_en: false
       pub_scan_num: 1
@@ -99,7 +88,7 @@
       pose_output_en: false
 
     pcd_save:
-      pcd_save_en: true
+      pcd_save_en: fasle
       colmap_output_en: false 
       filter_size_pcd: 0.15
       interval: -1

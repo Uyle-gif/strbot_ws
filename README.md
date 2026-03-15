@@ -202,3 +202,8 @@ use_sim_time:=True
 nano ~/.bashrc
 
 pcl_viewer /home/vinh/ttbot_ws/src/FAST-LIVO2/Log/PCD/all_raw_points.pcd
+
+
+powerprofilesctl set performance
+
+python3 record_tracking.py --prefix mpc

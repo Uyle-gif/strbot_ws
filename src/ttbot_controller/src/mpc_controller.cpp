@@ -42,7 +42,7 @@ MpcController::MpcController()
     reached_goal_ = false;
 
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-        "/odometry/filtered", 10,
+        "/mpc_state", 10,
         std::bind(&MpcController::odomCallback, this, std::placeholders::_1));
 
     path_sub_ = this->create_subscription<nav_msgs::msg::Path>(
@@ -92,18 +92,50 @@ void MpcController::pathCallback(const nav_msgs::msg::Path::SharedPtr msg)
 {
     if (msg->poses.empty()) return;
 
-    path_points_.clear();
-    path_points_.reserve(msg->poses.size());
-
+    // 1. Lấy dữ liệu raw từ topic
+    std::vector<std::pair<double, double>> raw_points;
+    raw_points.reserve(msg->poses.size());
     for (const auto &pose : msg->poses) {
-        path_points_.emplace_back(pose.pose.position.x, pose.pose.position.y);
+        raw_points.emplace_back(pose.pose.position.x, pose.pose.position.y);
     }
 
+    // 2. THUẬT TOÁN VUỐT MƯỢT GÓC (Moving Average Filter)
+    int smooth_passes = 1; // Tăng lên 30 lần lặp để bào mòn hoàn toàn góc vuông gắt
+    int window_size = 1;    // Tầm nhìn 4 điểm trước/sau để tạo bán kính cua đủ rộng cho xe Ackermann
+
+    std::vector<std::pair<double, double>> smoothed_points = raw_points;
+
+    for (int pass = 0; pass < smooth_passes; ++pass) {
+        std::vector<std::pair<double, double>> temp_points = smoothed_points;
+        
+        // Bỏ qua điểm đầu và cuối để giữ nguyên điểm xuất phát/đích
+        for (size_t i = 1; i < smoothed_points.size() - 1; ++i) {
+            double sum_x = 0.0;
+            double sum_y = 0.0;
+            int count = 0;
+
+            int start_j = std::max(0, (int)i - window_size);
+            int end_j = std::min((int)smoothed_points.size() - 1, (int)i + window_size);
+
+            for (int j = start_j; j <= end_j; ++j) {
+                sum_x += smoothed_points[j].first;
+                sum_y += smoothed_points[j].second;
+                count++;
+            }
+
+            temp_points[i].first = sum_x / count;
+            temp_points[i].second = sum_y / count;
+        }
+        smoothed_points = temp_points;
+    }
+
+    // 3. Cập nhật quỹ đạo đã làm mượt vào hệ thống
+    path_points_ = smoothed_points;
     current_index_ = 0;
     has_path_ = true;
     reached_goal_ = false; 
 
-    RCLCPP_INFO(this->get_logger(), "--> NEW PATH: %zu points. MPC Ready.", path_points_.size());
+    RCLCPP_INFO(this->get_logger(), "--> PATH SMOOTHED: %zu points. Ready to track!", path_points_.size());
 }
 
 size_t MpcController::findClosestPoint(double x, double y)

@@ -18,7 +18,8 @@ def generate_launch_description():
     localization_dir = get_package_share_directory('ttbot_localization')
     fast_livo_dir = get_package_share_directory('fast_livo')
     mapping_dir = get_package_share_directory('ttbot_mapping')
-    
+    fast_lio_dir = get_package_share_directory('fast_lio')
+
     description_dir = get_package_share_directory('ttbot_description')
     urdf_file = os.path.join(description_dir, 'urdf', 'ttbot.urdf.xacro')    
     robot_description = Command(['xacro ', urdf_file])
@@ -40,8 +41,14 @@ def generate_launch_description():
         launch_arguments={'use_sim_time': use_sim_time}.items()
     )
 
+
+
     fast_livo_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(fast_livo_dir, 'launch', 'fast_livo_real.launch.py'))
+    )
+
+    fast_lio_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(os.path.join(fast_lio_dir, 'launch', 'fast_lio_real.launch.py'))
     )
 
     mapping_launch = IncludeLaunchDescription(
@@ -51,6 +58,11 @@ def generate_launch_description():
     delay_fast_livo = TimerAction(
         period=3.0,
         actions=[fast_livo_launch]
+    )
+
+    delay_fast_lio = TimerAction(
+        period=3.0,
+        actions=[fast_lio_launch]
     )
 
     delay_mapping = TimerAction(
@@ -63,6 +75,7 @@ def generate_launch_description():
         robot_state_publisher_node,  
         joint_state_publisher_node,
         localization_launch,
-        delay_fast_livo,             
+        delay_fast_livo,
+        # delay_fast_lio,
         delay_mapping                
     ])

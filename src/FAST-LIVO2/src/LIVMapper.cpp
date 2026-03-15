@@ -1430,6 +1430,13 @@ void LIVMapper::publish_odometry(const rclcpp::Publisher<nav_msgs::msg::Odometry
   odomAftMapped.child_frame_id = "base_link";
   odomAftMapped.header.stamp = this->node->get_clock()->now(); //.ros::Time()fromSec(last_timestamp_lidar);
   set_posestamp(odomAftMapped.pose.pose);
+  
+  odomAftMapped.pose.covariance[0]  = 0.05;  // X variance
+  odomAftMapped.pose.covariance[7]  = 0.05;  // Y variance
+  odomAftMapped.pose.covariance[14] = 0.05;  // Z variance
+  odomAftMapped.pose.covariance[21] = 0.05;  // Roll variance
+  odomAftMapped.pose.covariance[28] = 0.05;  // Pitch variance
+  odomAftMapped.pose.covariance[35] = 0.05;  // Yaw variance
 
   // static std::shared_ptr<tf2_ros::TransformBroadcaster> br;
   // br = std::make_shared<tf2_ros::TransformBroadcaster>(this->node);

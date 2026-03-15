@@ -115,6 +115,38 @@ def generate_launch_description():
             )
         ]
     )
+    mpc_filter_node = TimerAction(
+        period=10.0, # Chạy sau localization một chút
+        actions=[
+            Node(
+                package='ttbot_controller',
+                executable='mpc_state_filter.py',
+                name='mpc_state_filter',
+                output='screen',
+                parameters=[{
+                    'use_sim_time': use_sim_time,
+                    'input_odom_topic': '/odometry/filtered',
+                    'output_odom_topic': '/mpc_state',
+                    'cmd_vel_topic': '/ackermann_controller/cmd_vel',
+                    
+                    # --- Điều chỉnh độ mượt (Low-pass filter) ---
+                    'alpha_x': 0.6,    # Hạ xuống 0.6 để lọc nhiễu vị trí
+                    'alpha_y': 0.6,
+                    'alpha_yaw': 0.6,
+                    'alpha_v': 0.4,    # Hạ v và wz xuống 0.4 để GMPC không bị nhiễu đạo hàm
+                    'alpha_wz': 0.4,
+
+                    # --- Giới hạn gia tốc bảo vệ xe ---
+                    'max_v_rate': 3.0,
+                    'max_wz_rate': 4.0,
+
+                    # --- Deadband chống trôi ---
+                    'v_standstill_threshold': 0.05,
+                    'wz_standstill_threshold': 0.05
+                }]
+            )
+        ]
+    )
 
     qgc_bridge_node = TimerAction(
         period=15.0, 
@@ -217,14 +249,14 @@ def generate_launch_description():
         gazebo_launch,
        # fast_lio_node,
         low_level_control_launch,
-        
+        mpc_filter_node,
         joy_launch_group,
         stamped_mux_node, 
-        qgc_bridge_node,
+        # qgc_bridge_node,
         
         localization_launch,
         path_pub_launch,
         high_level_control_delayed,
         
-        rviz_node
+        # rviz_node
     ])

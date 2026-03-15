@@ -3,11 +3,11 @@ from pathlib import Path
 from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, GroupAction, SetEnvironmentVariable, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch.conditions import IfCondition
-from launch_ros.actions import Node
+from launch_ros.actions import Node, SetRemap
 
 def generate_launch_description():
     fast_lio_pkg = get_package_share_directory('fast_lio')
@@ -17,6 +17,25 @@ def generate_launch_description():
     default_config_path = os.path.join(fast_lio_pkg, 'config')
     default_rviz_config_path = os.path.join(fast_lio_pkg, 'rviz', 'fastlio.rviz')
     xsens_params_path = Path(xsens_pkg, 'param', 'xsens_mti_node.yaml')
+
+
+    realsense_pkg = get_package_share_directory('realsense2_camera')
+
+    realsense_launch = GroupAction(
+        actions=[
+            SetRemap(src='/camera/camera/imu', dst='/imu/camera'), 
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource([os.path.join(realsense_pkg, 'launch', 'rs_launch.py')]),
+                launch_arguments={
+                    'pointcloud.enable': 'false', 
+                    'enable_gyro': 'true',       
+                    'enable_accel': 'true',      
+                    'unite_imu_method': '2',     
+                }.items()
+            )
+        ]
+    )
+
 
     use_sim_time = LaunchConfiguration('use_sim_time', default='false')
 
@@ -55,7 +74,7 @@ def generate_launch_description():
 
     ld.add_action(SetEnvironmentVariable('RCUTILS_LOGGING_USE_STDOUT', '1'))
     ld.add_action(SetEnvironmentVariable('RCUTILS_LOGGING_BUFFERED_STREAM', '1'))
-
+    ld.add_action(realsense_launch)
     ld.add_action(xsens_mti_node)
     ld.add_action(velodyne_launch)
     ld.add_action(fast_lio_node)

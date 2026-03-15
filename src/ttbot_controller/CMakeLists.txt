@@ -135,6 +135,11 @@ install(
   DESTINATION share/${PROJECT_NAME}/
 )
 
+# Cài đặt file Python script
+install(PROGRAMS
+  scripts/mpc_state_filter.py
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 add_executable(stamped_twist_mux src/stamped_twist_mux.cpp)
 ament_target_dependencies(stamped_twist_mux 

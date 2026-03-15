@@ -8,7 +8,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     
     path_file_arg = DeclareLaunchArgument(
-        "path_file", default_value="path_8.csv",
+        "path_file", default_value="path_8_small.csv",
         description="Name of the CSV file inside 'path' folder"
     )
 
@@ -22,7 +22,7 @@ def generate_launch_description():
         parameters=[{
             # Nối đường dẫn tuyệt đối một cách an toàn
             "file_path": PathJoinSubstitution([pkg_dir, 'path', LaunchConfiguration("path_file")]),
-            "frame_id": "map"
+            "frame_id": "odom"
         }]
     )
 

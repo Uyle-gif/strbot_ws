@@ -1,11 +1,11 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
+from launch.actions import GroupAction, IncludeLaunchDescription, DeclareLaunchArgument
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch.conditions import IfCondition
-from launch_ros.actions import Node
+from launch_ros.actions import Node,SetRemap
 
 def generate_launch_description():
     fast_livo_pkg = get_package_share_directory('fast_livo')
@@ -22,12 +22,23 @@ def generate_launch_description():
         PythonLaunchDescriptionSource([os.path.join(velodyne_pkg, 'launch', 'velodyne-all-nodes-VLP16-launch.py')])
     )
 
+    # realsense_launch = IncludeLaunchDescription(
+    #     PythonLaunchDescriptionSource([os.path.join(realsense_pkg, 'launch', 'rs_launch.py')]),
+    #     launch_arguments={
+    #         'pointcloud.enable': 'false', 
+    #         'enable_gyro': 'false',
+    #         'enable_accel': 'false',
+    #     }.items()
+    # )
+    # =========================================================================
+    # CẤU HÌNH REALSENSE IMU VÀ REMAP TOPIC CHUẨN XÁC
+    # =========================================================================
     realsense_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(realsense_pkg, 'launch', 'rs_launch.py')]),
         launch_arguments={
             'pointcloud.enable': 'false', 
-            'enable_gyro': 'false',
-            'enable_accel': 'false',
+            'enable_gyro': 'false',      # Tắt hoàn toàn Gyro của camera
+            'enable_accel': 'false',     # Tắt hoàn toàn Accel của camera
         }.items()
     )
 
@@ -69,5 +80,5 @@ def generate_launch_description():
         xsens_launch,
         param_blackboard_node, 
         fastlivo_node,
-        rviz_node
+        #rviz_node
     ])

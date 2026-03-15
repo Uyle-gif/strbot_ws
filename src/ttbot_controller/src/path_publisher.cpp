@@ -17,7 +17,7 @@ public:
     PathPublisher() : Node("path_publisher")
     {
         // 1. Khai báo tham số nhận từ file launch
-        this->declare_parameter("frame_id", "map");
+        this->declare_parameter("frame_id", "odom");
         this->declare_parameter("file_path", "");
 
         frame_id_ = this->get_parameter("frame_id").as_string();

@@ -47,7 +47,7 @@ def generate_launch_description():
     # --------------------------------------------------------------------------
     N_p_arg = DeclareLaunchArgument(
         "N_p",
-        default_value="10",
+        default_value="20",
         description="Prediction horizon"
     )
 
@@ -68,13 +68,13 @@ def generate_launch_description():
 
     Q_ey_arg = DeclareLaunchArgument(
         "Q_ey",
-        default_value="10.0",
+        default_value="35.0",
         description="Weight for lateral error ey"
     )
 
     Q_epsi_arg = DeclareLaunchArgument(
         "Q_epsi",
-        default_value="5.0",
+        default_value="21.0",
         description="Weight for heading error epsi"
     )
 
@@ -86,19 +86,19 @@ def generate_launch_description():
 
     R_omega_arg = DeclareLaunchArgument(
         "R_omega",
-        default_value="1.0",
+        default_value="0.6",
         description="Weight for angular velocity control effort"
     )
 
     R_dv_arg = DeclareLaunchArgument(
         "R_dv",
-        default_value="0.1",
+        default_value="1.0",
         description="Weight for delta-v smoothness"
     )
 
     R_domega_arg = DeclareLaunchArgument(
         "R_domega",
-        default_value="0.1",
+        default_value="6.5",
         description="Weight for delta-omega smoothness"
     )
 

@@ -18,7 +18,7 @@
 #include <string>
 #include <memory>
 #include <cmath>
-
+#include <chrono>
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
 #include <osqp/osqp.h>
@@ -38,8 +38,8 @@ private:
     void mpcTuningCallback(const std_msgs::msg::Float32MultiArray::SharedPtr msg);    
 
     // <-- 3. CẬP NHẬT HÀM SOLVE: thêm ex0 và omega_ref
-    Control solveMPC(double ex0, double ey0, double epsi0, double v_ref, double omega_ref);
-    
+    // Control solveMPC(double ex0, double ey0, double epsi0, double v_ref, double omega_ref);
+    Control solveMPC(double x0, double y0, double yaw0, size_t start_idx);
     // <-- 3. CẬP NHẬT HÀM LINEARIZE: thêm omega_ref
     void linearizeErrorModel(double v_ref, double omega_ref, double dt);
     
