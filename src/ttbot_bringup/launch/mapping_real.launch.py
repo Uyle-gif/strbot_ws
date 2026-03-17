@@ -75,7 +75,7 @@ def generate_launch_description():
         robot_state_publisher_node,  
         joint_state_publisher_node,
         localization_launch,
-        delay_fast_livo,
-        # delay_fast_lio,
+        # delay_fast_livo,
+        delay_fast_lio,
         # delay_mapping                
     ])

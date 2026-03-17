@@ -100,8 +100,8 @@ void MpcController::pathCallback(const nav_msgs::msg::Path::SharedPtr msg)
     }
 
     // 2. THUẬT TOÁN VUỐT MƯỢT GÓC (Moving Average Filter)
-    int smooth_passes = 1; // Tăng lên 30 lần lặp để bào mòn hoàn toàn góc vuông gắt
-    int window_size = 1;    // Tầm nhìn 4 điểm trước/sau để tạo bán kính cua đủ rộng cho xe Ackermann
+    int smooth_passes = 25; // Tăng lên 30 lần lặp để bào mòn hoàn toàn góc vuông gắt
+    int window_size = 3;    // Tầm nhìn 4 điểm trước/sau để tạo bán kính cua đủ rộng cho xe Ackermann
 
     std::vector<std::pair<double, double>> smoothed_points = raw_points;
 

@@ -19,7 +19,7 @@ def generate_launch_description():
     path_file_arg = DeclareLaunchArgument("path_file", default_value=default_csv)
 
     # 3. MPC & Vehicle Params
-    desired_speed_arg = DeclareLaunchArgument("desired_speed", default_value="1.0")
+    desired_speed_arg = DeclareLaunchArgument("desired_speed", default_value="1.5")
     wheel_base_arg    = DeclareLaunchArgument("wheel_base", default_value="0.65")
     max_steer_deg_arg = DeclareLaunchArgument("max_steer_deg", default_value="30.0")
     goal_tol_arg      = DeclareLaunchArgument("goal_tolerance", default_value="0.3")
@@ -33,14 +33,14 @@ def generate_launch_description():
     # Giảm từ 30 xuống 20. 
     # Lý do: Nhìn xa quá (3 giây) xe sẽ có xu hướng "cắt cua" (ăn gian) để đi đường tắt.
     # Nhìn gần bắt buộc nó phải xử lý khúc cua ngay trước mặt.
-    Np_arg      = DeclareLaunchArgument("N_p", default_value="10") 
+    Np_arg      = DeclareLaunchArgument("N_p", default_value="30") 
 
     # Giảm bớt áp lực bám đường
-    Q_ey_arg    = DeclareLaunchArgument("Q_ey", default_value="60.0")   
-    Q_epsi_arg  = DeclareLaunchArgument("Q_epsi", default_value="50.0")
+    Q_ey_arg    = DeclareLaunchArgument("Q_ey", default_value="5.0")   
+    Q_epsi_arg  = DeclareLaunchArgument("Q_epsi", default_value="10.0")
     
     # TĂNG RẤT MẠNH độ cứng tay lái -> Chặn đứng dao động
-    R_delta_arg = DeclareLaunchArgument("R_delta", default_value="20.0" )
+    R_delta_arg = DeclareLaunchArgument("R_delta", default_value="16.0" )
 
     # 5. Node Definition
     mpc_node = Node(

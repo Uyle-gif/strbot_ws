@@ -68,13 +68,13 @@ def generate_launch_description():
 
     Q_ey_arg = DeclareLaunchArgument(
         "Q_ey",
-        default_value="35.0",
+        default_value="40.0",
         description="Weight for lateral error ey"
     )
 
     Q_epsi_arg = DeclareLaunchArgument(
         "Q_epsi",
-        default_value="21.0",
+        default_value="25.0",
         description="Weight for heading error epsi"
     )
 
@@ -98,7 +98,7 @@ def generate_launch_description():
 
     R_domega_arg = DeclareLaunchArgument(
         "R_domega",
-        default_value="6.5",
+        default_value="10.5",
         description="Weight for delta-omega smoothness"
     )
 
