@@ -1,0 +1,20 @@
+gmpc_controller:
+  ros__parameters:
+    # 1. Vehicle / controller params
+    desired_speed: 1.5
+    wheel_base: 0.65
+    max_steer_deg: 30.0
+    goal_tolerance: 0.3
+
+    # 2. GMPC horizon / sampling
+    N_p: 10
+    dt_mpc: 0.1
+
+    # 3. GMPC weights (Tuned for smooth and accurate SE(2) tracking)
+    Q_ex: 10.0
+    Q_ey: 20.0
+    Q_epsi: 10.0
+    R_v: 1.0
+    R_omega: 0.5
+    R_dv: 20.0
+    R_domega: 4.0

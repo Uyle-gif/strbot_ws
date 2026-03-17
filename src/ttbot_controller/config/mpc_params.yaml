@@ -1,0 +1,16 @@
+mpc_controller:
+  ros__parameters:
+    # MPC & Vehicle Params
+    desired_speed: 1.5
+    wheel_base: 0.65
+    max_steer_deg: 30.0
+    goal_tolerance: 0.3
+
+    # MPC Horizon / Sampling
+    N_p: 30
+    dt_mpc: 0.1
+
+    # MPC Weights (Tuned for strict tracking & stiff steering)
+    Q_ey: 5.0
+    Q_epsi: 10.0
+    R_delta: 16.0
