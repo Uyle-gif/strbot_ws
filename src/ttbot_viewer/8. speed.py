@@ -1,4 +1,4 @@
-.import rclpy
+import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import TwistStamped
 from std_msgs.msg import Float32
