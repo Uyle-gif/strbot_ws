@@ -69,6 +69,8 @@ private:
   nav2_costmap_2d::Costmap2D * costmap_;
   std::string global_frame_, name_;
 
+
+  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>> mpc_path_pub_;
   rclcpp_action::Client<nav2_msgs::action::SmoothPath>::SharedPtr smooth_client_;
 
   double turning_penalty_ = 5.0; 

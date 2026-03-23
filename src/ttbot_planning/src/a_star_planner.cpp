@@ -41,7 +41,6 @@ nav_msgs::msg::Path AStarPlanner::createPlan(
   const geometry_msgs::msg::PoseStamped & start,
   const geometry_msgs::msg::PoseStamped & goal)
 {
-  // ⏱️ 1. BẮT ĐẦU BẤM GIỜ
   auto start_time = std::chrono::high_resolution_clock::now();
 
   std::vector<std::pair<int, int>> explore_directions = {
