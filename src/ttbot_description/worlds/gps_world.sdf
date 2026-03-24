@@ -35,12 +35,9 @@
         <collision name="collision">
           <geometry><plane><normal>0 0 1</normal><size>100 100</size></plane></geometry>
         </collision>
-        <visual name="visual">
-          <geometry><plane><normal>0 0 1</normal><size>100 100</size></plane></geometry>
-          <material><ambient>0.8 0.8 0.8 1</ambient></material>
-        </visual>
-      </link>
+        </link>
     </model>
+
     <!-- <include>
       <uri>
         https://fuel.gazebosim.org/1.0/hujp/models/Campus
@@ -48,6 +45,7 @@
       <name>campus</name>
       <pose>-3.24 -53.09 0 0 0 1.047</pose>
     </include> -->
+    
     <!-- <include>
       <uri>
         https://fuel.gazebosim.org/1.0/zaidammag/models/baylands_terrain
@@ -57,18 +55,56 @@
     </include> -->
 
 
+
+    
     <include>
       <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Warehouse</uri>
       <name>warehouse</name>
-      <pose>0 0 -0.1 0 0 0</pose> 
+      <pose>0 0 0 0 0 0</pose> 
     </include>
 
-
-
-
-
-
-
+    <actor name="walking_person">
+      <skin>
+        <filename>https://fuel.gazebosim.org/1.0/Mingfei/models/actor/tip/files/meshes/walk.dae</filename>
+        <scale>1.0</scale>
+      </skin>
+      <animation name="walking">
+        <filename>https://fuel.gazebosim.org/1.0/Mingfei/models/actor/tip/files/meshes/walk.dae</filename>
+        <scale>1.0</scale>
+        <interpolate_x>true</interpolate_x>
+      </animation>
+      <script>
+        <loop>true</loop>
+        <delay_start>0.0</delay_start>
+        <auto_start>true</auto_start>
+        <trajectory id="0" type="walking">
+          <waypoint>
+            <time>0.0</time>
+            <pose>2.0 0.0 1.0 0 0 1.57</pose> 
+          </waypoint>
+          
+          <waypoint>
+            <time>16.0</time>
+            <pose>2.0 8.0 1.0 0 0 1.57</pose>
+          </waypoint>
+          
+          <waypoint>
+            <time>17.0</time>
+            <pose>2.0 8.0 1.0 0 0 -1.57</pose>
+          </waypoint>
+          
+          <waypoint>
+            <time>33.0</time>
+            <pose>2.0 0.0 1.0 0 0 -1.57</pose>
+          </waypoint>
+          
+          <waypoint>
+            <time>34.0</time>
+            <pose>2.0 0.0 1.0 0 0 1.57</pose>
+          </waypoint>
+        </trajectory>
+      </script>
+    </actor>
     <spherical_coordinates>
       <surface_model>EARTH_WGS84</surface_model>
       <world_frame_orientation>ENU</world_frame_orientation>

@@ -16,6 +16,7 @@ find_package(nav_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(tf2 REQUIRED)
 
 # Các thư viện toán học
 find_package(Eigen3 REQUIRED NO_MODULE)
@@ -24,6 +25,11 @@ find_package(osqp REQUIRED)
 include_directories(include)
 
 add_library(ttbot_motion SHARED src/mpc_controller.cpp)
+
+
+add_executable(obstacle_avoider src/obstacle_avoider.cpp)
+ament_target_dependencies(obstacle_avoider rclcpp nav_msgs geometry_msgs tf2 tf2_geometry_msgs)
+
 
 # Link thư viện ROS 2
 ament_target_dependencies(ttbot_motion
@@ -47,7 +53,10 @@ target_link_libraries(ttbot_motion
 
 pluginlib_export_plugin_description_file(nav2_core motion_planner_plugins.xml)
 
-install(TARGETS ttbot_motion
+install(TARGETS 
+  ttbot_motion
+  obstacle_avoider
+
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}

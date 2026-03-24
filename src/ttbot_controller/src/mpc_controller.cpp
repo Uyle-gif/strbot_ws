@@ -49,6 +49,10 @@ MpcController::MpcController()
         "/mpc_path", 1,
         std::bind(&MpcController::pathCallback, this, std::placeholders::_1));
 
+    // path_sub_ = this->create_subscription<nav_msgs::msg::Path>(
+    //     "/local_mpc_path", 1,
+    //     std::bind(&MpcController::pathCallback, this, std::placeholders::_1));
+
     cmd_pub_ = this->create_publisher<geometry_msgs::msg::TwistStamped>(
         "/ackermann_controller/cmd_vel", 10);
     mpc_tuning_sub_ = this->create_subscription<std_msgs::msg::Float32MultiArray>(
