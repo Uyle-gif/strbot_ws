@@ -1,48 +1,19 @@
-#ifndef A_STAR_PLANNER_NEW_HPP
-#define A_STAR_PLANNER_NEW_HPP
+#ifndef TTBOT_PLANNING__A_STAR_PLANNER_NEW_HPP_
+#define TTBOT_PLANNING__A_STAR_PLANNER_NEW_HPP_
 
 #include <string>
 #include <memory>
 #include <vector>
-#include <queue>
-#include <cmath>
 
 #include "rclcpp/rclcpp.hpp"
-#include "rclcpp_action/rclcpp_action.hpp"
-#include "geometry_msgs/msg/point.hpp"
-#include "geometry_msgs/msg/pose_stamped.hpp"
-
 #include "nav2_core/global_planner.hpp"
 #include "nav_msgs/msg/path.hpp"
-#include "nav2_util/robot_utils.hpp"
-#include "nav2_util/lifecycle_node.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
 #include "nav2_costmap_2d/costmap_2d_ros.hpp"
-#include "nav2_msgs/action/smooth_path.hpp"
+#include "nav2_util/lifecycle_node.hpp"
 
 namespace ttbot_planning
 {
-struct GraphNode
-{
-    int x, y;
-    double cost; 
-    double heuristic;
-    std::shared_ptr<GraphNode> prev;
-
-    GraphNode() : GraphNode(0, 0) {}
-    GraphNode(int in_x, int in_y) : x(in_x), y(in_y), cost(0.0), heuristic(0.0), prev(nullptr) {}
-
-    bool operator>(const GraphNode & other) const { 
-        return (cost + heuristic) > (other.cost + other.heuristic);
-    }
-
-    bool operator==(const GraphNode & other) const {
-        return x == other.x && y == other.y;
-    }
-
-    GraphNode operator+(const std::pair<int, int> & dir) const {
-        return GraphNode(x + dir.first, y + dir.second);
-    }
-};
 
 class AStarPlannerNew : public nav2_core::GlobalPlanner
 {
@@ -64,28 +35,24 @@ public:
     const geometry_msgs::msg::PoseStamped & goal) override;
 
 private:
-  std::shared_ptr<tf2_ros::Buffer> tf_;
-  nav2_util::LifecycleNode::SharedPtr node_;
-  nav2_costmap_2d::Costmap2D * costmap_;
-  std::string global_frame_, name_;
-
+  rclcpp_lifecycle::LifecycleNode::WeakPtr node_;
+  
+  nav2_costmap_2d::Costmap2D* costmap_; 
+  
+  std::string global_frame_;
+  std::string name_;
 
   std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>> mpc_path_pub_;
-  rclcpp_action::Client<nav2_msgs::action::SmoothPath>::SharedPtr smooth_client_;
 
-  double turning_penalty_ = 5.0; 
-  unsigned char obstacle_threshold_ = 60; 
-
-  bool poseOnMap(const GraphNode & node);
-  GraphNode worldToGrid(const geometry_msgs::msg::Pose & pose);
-  geometry_msgs::msg::Pose gridToWorld(const GraphNode & node);
-  unsigned int poseToCell(const GraphNode & node);
   
-  double euclideanDistance(const GraphNode &node, const GraphNode &goal_node);
-  bool isLineOfSightClear(const GraphNode &a, const GraphNode &b);
-  nav_msgs::msg::Path eliminateInflectionPoints(const nav_msgs::msg::Path &raw_path);
+  nav_msgs::msg::Path interpolatePath(const nav_msgs::msg::Path &raw_path, double resolution);
+  
+  nav_msgs::msg::Path eliminateInflectionPoints(const nav_msgs::msg::Path &path);
+  bool isLineOfSightClear(const geometry_msgs::msg::PoseStamped &start, const geometry_msgs::msg::PoseStamped &goal);
+  
+
 };
 
 }  
 
-#endif
+#endif  

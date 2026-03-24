@@ -19,9 +19,20 @@ echo -e '$DATOP 0000\r' > /dev/ttbot_imu
 echo -e '$DATOP 1111\r' > /dev/ttbot_imu
 echo -e '$BRATE 3\r' > /dev/ttbot_imu
 ``` -->
-### Micro ROS-Agent
 
+
+### Micro ROS-Agent
 ```bash
 ros2 run micro_ros_agent micro_ros_agent serial --dev /dev/ttbot_stm32
 ```
 
+### Simulation
+1. Launch the simulation bringup.
+2. Launch FAST-LIO/FAST-LIVO in sim mode.
+3. Launch the navigation stack.
+
+### Real-World
+1. Launch the real-robot bringup.
+2. Launch FAST-LIO/FAST-LIVO on real mode
+3. Launch the navigation stack. (use_sim_time:=false) 
+    NOTE: Check the map used by the Navigation map server

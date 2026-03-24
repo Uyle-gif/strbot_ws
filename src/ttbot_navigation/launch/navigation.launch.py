@@ -13,19 +13,38 @@ from launch_ros.actions import Node
 def generate_launch_description():
 
     use_sim_time = LaunchConfiguration("use_sim_time")
-    lifecycle_nodes = ["controller_server", "planner_server", "smoother_server", "bt_navigator"]
+    lifecycle_nodes = ["map_server", "controller_server", "planner_server", "smoother_server", "bt_navigator"]
     
     ttbot_navigation_pkg = get_package_share_directory("ttbot_navigation")
+    ttbot_mapping_pkg = get_package_share_directory("ttbot_mapping") 
 
     use_sim_time_arg = DeclareLaunchArgument(
         "use_sim_time",
         default_value="true"
     )
 
+    map_yaml_file = LaunchConfiguration('map')
+    map_arg = DeclareLaunchArgument(
+        'map',
+        default_value=os.path.join(ttbot_mapping_pkg, 'maps', 'warehouse_map.yaml'),
+        description='Full path to map yaml file to load'
+    )
+
     default_bt_xml_path = os.path.join(
         ttbot_navigation_pkg,
         "behavior_tree",
         "simple_navigation.xml"
+    )
+
+    nav2_map_server = Node(
+        package='nav2_map_server',
+        executable='map_server',
+        name='map_server',
+        output='screen',
+        parameters=[
+            {'yaml_filename': map_yaml_file},
+            {'use_sim_time': use_sim_time}
+        ]
     )
 
     nav2_controller_server = Node(
@@ -99,6 +118,8 @@ def generate_launch_description():
 
     return LaunchDescription([
         use_sim_time_arg,
+        map_arg,                 
+        nav2_map_server,         
         nav2_controller_server,
         nav2_planner_server,
         nav2_smoother_server,

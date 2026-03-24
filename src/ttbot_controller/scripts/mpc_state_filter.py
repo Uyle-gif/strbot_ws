@@ -24,7 +24,7 @@ class MPCStateFilter(Node):
         super().__init__("mpc_state_filter")
 
         # ---------------- Parameters ----------------
-        self.declare_parameter("input_odom_topic", "/odometry/filtered")
+        self.declare_parameter("input_odom_topic", "/odometry/global")
         self.declare_parameter("output_odom_topic", "/mpc_state")
         self.declare_parameter("cmd_vel_topic","/ackermann_controller/cmd_vel")
         self.declare_parameter("publish_standstill_topic", "/mpc_state/is_standstill")

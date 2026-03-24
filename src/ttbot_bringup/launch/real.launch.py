@@ -149,7 +149,7 @@ def generate_launch_description():
                 parameters=[{
                     'use_sim_time': use_sim_time,
 
-                    'input_odom_topic': '/odometry/filtered',
+                    'input_odom_topic': '/odometry/global',
                     'output_odom_topic': '/mpc_state',
                     'cmd_vel_topic': '/ackermann_controller/cmd_vel',
                     'alpha_x': 1.0,    
