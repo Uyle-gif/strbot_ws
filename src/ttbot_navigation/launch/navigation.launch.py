@@ -20,13 +20,13 @@ def generate_launch_description():
 
     use_sim_time_arg = DeclareLaunchArgument(
         "use_sim_time",
-        default_value="true"
+        default_value="false"
     )
 
     map_yaml_file = LaunchConfiguration('map')
     map_arg = DeclareLaunchArgument(
         'map',
-        default_value=os.path.join(ttbot_mapping_pkg, 'maps', 'warehouse_map.yaml'),
+        default_value=os.path.join(ttbot_mapping_pkg, 'maps', 'bk_map.yaml'),
         description='Full path to map yaml file to load'
     )
 

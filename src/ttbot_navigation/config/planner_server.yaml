@@ -57,4 +57,4 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 5.0
-        inflation_radius: 1.0
+        inflation_radius: 3.0
