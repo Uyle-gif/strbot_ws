@@ -28,10 +28,13 @@ public:
     tf_buffer_(this->get_clock()),
     tf_listener_(tf_buffer_)
   {
-    // --- THÔNG SỐ SIÊU NÉ (CHỈNH TẠI ĐÂY) ---
+    // --- THÔNG SỐ SIÊU NÉ ---
     avoid_threshold_ = this->declare_parameter<int>("avoid_threshold", 10); // Nhạy với quầng xanh nhạt
-    swerve_width_ = this->declare_parameter<double>("swerve_width", 3.0);    // Độ rộng vòng cung (né xa 2.0m)
-    lookahead_dist_ = this->declare_parameter<double>("lookahead_dist", 6.0); // Tầm nhìn xa 5m
+    swerve_width_ = this->declare_parameter<double>("swerve_width", 3.0);    // Độ rộng vòng cung (né xa)
+    lookahead_dist_ = this->declare_parameter<double>("lookahead_dist", 6.0); // Tầm nhìn xa
+    
+    // Tham số quyết định hướng né: 1.0 (Né Trái), -1.0 (Né Phải)
+    swerve_dir_ = this->declare_parameter<double>("swerve_dir", 1.0); 
     
     // Khoảng cách mét để xác định điểm bắt đầu và kết thúc vòng cung
     anchor_dist_before_ = 1.5; 
@@ -48,7 +51,7 @@ public:
     timer_ = this->create_wall_timer(
       std::chrono::milliseconds(100), std::bind(&ObstacleAvoider::processPath, this));
 
-    RCLCPP_INFO(this->get_logger(), "BEZIER SUPER AVOIDER READY. Swerving early and wide!");
+    RCLCPP_INFO(this->get_logger(), "BEZIER SUPER AVOIDER READY. Swerving fixed to one side!");
   }
 
 private:
@@ -75,11 +78,11 @@ private:
 
     if (!global_path || !costmap || global_path->poses.empty()) return;
 
-    // 1. Chuyển path về frame của costmap (odom) để tính toán chính xác tuyệt đối
+    // 1. Chuyển path về frame của costmap (odom)
     nav_msgs::msg::Path working_path;
     if (!transformPath(*global_path, costmap->header.frame_id, working_path)) return;
 
-    // 2. Chặt đuôi (Xóa phần path sau lưng robot)
+    // 2. Chặt đuôi
     prunePath(working_path);
 
     // 3. LOGIC VÒNG CUNG BEZIER
@@ -87,7 +90,6 @@ private:
       int first_hit_idx = -1;
       double dist_acc = 0.0;
 
-      // Tìm điểm đầu tiên đụng lớp inflation trong tầm nhìn lookahead
       for (size_t i = 1; i < working_path.poses.size(); ++i) {
         dist_acc += std::hypot(working_path.poses[i].pose.position.x - working_path.poses[i-1].pose.position.x,
                                 working_path.poses[i].pose.position.y - working_path.poses[i-1].pose.position.y);
@@ -100,32 +102,26 @@ private:
         }
       }
 
-      // Nếu phát hiện vật cản phía trước
       if (first_hit_idx != -1) {
-        // Tìm 2 điểm Neo (P0, P3) dựa trên KHOẢNG CÁCH MÉT
         int start_idx = findIndexByDistance(working_path, first_hit_idx, -anchor_dist_before_);
         int end_idx = findIndexByDistance(working_path, first_hit_idx, anchor_dist_after_);
 
         Point p0 = {working_path.poses[start_idx].pose.position.x, working_path.poses[start_idx].pose.position.y};
         Point p3 = {working_path.poses[end_idx].pose.position.x, working_path.poses[end_idx].pose.position.y};
 
-        // Tính toán vector lách vuông góc
         double dx = p3.x - p0.x;
         double dy = p3.y - p0.y;
         double chord = std::hypot(dx, dy);
         if (chord > 0.1) {
-          double nx = -dy / chord; // Pháp tuyến (trái)
+          double nx = -dy / chord; 
           double ny = dx / chord;
 
-          // Quyết định né trái hay phải (bên nào "sạch" costmap hơn)
-          double side = (getCostAt(p0.x + nx*0.5, p0.y + ny*0.5, *costmap) > 
-                         getCostAt(p0.x - nx*0.5, p0.y - ny*0.5, *costmap)) ? -1.0 : 1.0;
+          // Cố định hướng né dựa trên tham số (không kiểm tra costmap hai bên nữa)
+          double side = swerve_dir_; 
 
-          // Tạo 2 điểm điều khiển (Control Points) để kéo đường thành vòng cung
           Point p1 = {p0.x + dx * 0.3 + nx * side * swerve_width_, p0.y + dy * 0.3 + ny * side * swerve_width_};
           Point p2 = {p0.x + dx * 0.7 + nx * side * swerve_width_, p0.y + dy * 0.7 + ny * side * swerve_width_};
 
-          // Sinh các điểm trên đường cong Bezier bậc 3
           std::vector<geometry_msgs::msg::PoseStamped> bezier_arc;
           for (double t = 0; t <= 1.0; t += 0.05) {
             double b0 = std::pow(1-t, 3);
@@ -140,7 +136,6 @@ private:
             bezier_arc.push_back(ps);
           }
 
-          // Thay thế đoạn thẳng bằng đoạn vòng cung mượt
           working_path.poses.erase(working_path.poses.begin() + start_idx, working_path.poses.begin() + end_idx);
           working_path.poses.insert(working_path.poses.begin() + start_idx, bezier_arc.begin(), bezier_arc.end());
         }
@@ -156,7 +151,7 @@ private:
       working_path.poses[i].pose.orientation = tf2::toMsg(q);
     }
 
-    // 5. Publish kết quả (Dùng frame của global plan ban đầu)
+    // 5. Publish kết quả
     nav_msgs::msg::Path final_path;
     if (transformPath(working_path, global_plan_frame_, final_path)) {
       final_path.header.stamp = this->now();
@@ -164,7 +159,6 @@ private:
     }
   }
 
-  // Hàm bổ trợ: Tìm Index dựa trên khoảng cách mét (tránh phụ thuộc vào mật độ điểm)
   int findIndexByDistance(const nav_msgs::msg::Path & path, int start_idx, double target_dist) {
     double d = 0;
     int i = start_idx;
@@ -218,8 +212,11 @@ private:
   rclcpp::TimerBase::SharedPtr timer_;
   tf2_ros::Buffer tf_buffer_;
   tf2_ros::TransformListener tf_listener_;
+  
+  // Các biến cấu hình
   int avoid_threshold_;
   double swerve_width_, lookahead_dist_, anchor_dist_before_, anchor_dist_after_;
+  double swerve_dir_; // Khai báo biến hướng né
 };
 } 
 
