@@ -16,7 +16,7 @@ void AStarPlanner::configure(
   costmap_ = costmap_ros->getCostmap();
   global_frame_ = costmap_ros->getGlobalFrameID();
 
-  smooth_client_ = rclcpp_action::create_client<nav2_msgs::action::SmoothPath>(node_, "smooth_path");
+  RCLCPP_INFO(node_->get_logger(), "Configured Baseline A* Planner (Strictly Avoid Blue/Cyan Zones)");
 }
 
 void AStarPlanner::cleanup()
@@ -27,9 +27,6 @@ void AStarPlanner::cleanup()
 void AStarPlanner::activate()
 {
   RCLCPP_INFO(node_->get_logger(), "Activating plugin %s of type AStarPlanner", name_.c_str());
-  if (!smooth_client_->wait_for_action_server(std::chrono::seconds(3))) {
-    RCLCPP_ERROR(node_->get_logger(), "Action server smooth_path not available after waiting");
-  }
 }
 
 void AStarPlanner::deactivate()
@@ -53,10 +50,13 @@ nav_msgs::msg::Path AStarPlanner::createPlan(
   unsigned int size_y = costmap_->getSizeInCellsY();
   
   std::vector<uint8_t> closed_set(size_x * size_y, 0); 
+  std::vector<double> min_cost(size_x * size_y, 1e9); 
   
   GraphNode start_node = worldToGrid(start.pose);
   GraphNode goal_node = worldToGrid(goal.pose);
-  start_node.heuristic = manhattanDistance(start_node, goal_node);
+  start_node.heuristic = euclideanDistance(start_node, goal_node);
+  
+  min_cost[poseToCell(start_node)] = 0.0;
   pending_nodes.push(start_node);
 
   GraphNode active_node;
@@ -80,13 +80,26 @@ nav_msgs::msg::Path AStarPlanner::createPlan(
         
         if (poseOnMap(new_node)) {
             unsigned int n_idx = poseToCell(new_node);
-            unsigned char cost = costmap_->getCost(new_node.x, new_node.y);
+            unsigned char cm_cost = costmap_->getCost(new_node.x, new_node.y);
             
-            if (!closed_set[n_idx] && cost < 99) {
-                new_node.cost = active_node.cost + 1 + cost;
-                new_node.heuristic = manhattanDistance(new_node, goal_node);
-                new_node.prev = std::make_shared<GraphNode>(active_node);
-                pending_nodes.push(new_node);
+            // 🔥 CHẶN VÙNG XANH/TÍM ĐẬM: Hạ ngưỡng xuống 128 (thay vì 253)
+            // Nếu cost >= 128, coi như là bức tường tàng hình, không cho phép đi vào.
+            if (!closed_set[n_idx] && cm_cost < 128) {
+                
+                double step_cost = (dir.first == 0 || dir.second == 0) ? 1.0 : 1.41421356;
+                
+                // 🔥 ÉP RA VÙNG TRẮNG: Phạt bình phương
+                // Nếu đi vào vùng lờ mờ tím (cost từ 1 đến 127), điểm phạt sẽ tăng vọt lên rất cao.
+                double costmap_penalty = (cm_cost * cm_cost) / 10.0; 
+                
+                new_node.cost = active_node.cost + step_cost + costmap_penalty;
+                
+                if (new_node.cost < min_cost[n_idx]) {
+                    min_cost[n_idx] = new_node.cost;
+                    new_node.heuristic = euclideanDistance(new_node, goal_node);
+                    new_node.prev = std::make_shared<GraphNode>(active_node);
+                    pending_nodes.push(new_node);
+                }
             }
         }
     }
@@ -106,41 +119,16 @@ nav_msgs::msg::Path AStarPlanner::createPlan(
     }
     std::reverse(path.poses.begin(), path.poses.end());
 
-    
     auto end_time = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> elapsed_time = end_time - start_time;
     RCLCPP_INFO(node_->get_logger(), "[A* Baseline] Planning Time: %.3f ms", elapsed_time.count());
-
-    // --- Action call smoother ---
-    if(smooth_client_->action_server_is_ready()){
-      nav2_msgs::action::SmoothPath::Goal path_smooth;
-      path_smooth.path = path;
-      path_smooth.check_for_collisions = false;
-      path_smooth.smoother_id = "simple_smoother"; 
-      path_smooth.max_smoothing_duration.sec = 10;
-      
-      auto future = smooth_client_->async_send_goal(path_smooth);
-
-      if(future.wait_for(std::chrono::seconds(3)) == std::future_status::ready){
-        auto goal_handle = future.get();
-        if(goal_handle){
-          auto result_future = smooth_client_->async_get_result(goal_handle);
-          if(result_future.wait_for(std::chrono::seconds(3)) == std::future_status::ready){
-            auto result_path = result_future.get();
-            if(result_path.code == rclcpp_action::ResultCode::SUCCEEDED){
-              path = result_path.result->path;
-            }
-          }
-        }
-      }
-    }
   }
     
   return path;
 }
 
-double AStarPlanner::manhattanDistance(const GraphNode &node, const GraphNode &goal_node) {
-    return std::abs(node.x - goal_node.x) + std::abs(node.y - goal_node.y);
+double AStarPlanner::euclideanDistance(const GraphNode &node, const GraphNode &goal_node) {
+    return std::hypot(node.x - goal_node.x, node.y - goal_node.y);
 }
 
 bool AStarPlanner::poseOnMap(const GraphNode & node) {

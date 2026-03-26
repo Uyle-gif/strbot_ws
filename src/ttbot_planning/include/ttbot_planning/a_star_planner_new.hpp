@@ -13,11 +13,12 @@
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "nav2_msgs/action/smooth_path.hpp"
+#include "rclcpp_lifecycle/lifecycle_publisher.hpp"
 
 namespace ttbot_planning
 {
 
-// 🚀 Cấu trúc Node (GraphNode) MỚI
+// Custom Graph Node structure for A* Search
 struct GraphNode {
   int x, y;
   double cost, heuristic;
@@ -65,18 +66,24 @@ private:
   nav2_costmap_2d::Costmap2D * costmap_;
   std::string global_frame_;
 
+  // Nav2 Action Client for Path Smoothing
   rclcpp_action::Client<nav2_msgs::action::SmoothPath>::SharedPtr smooth_client_;
+  
+  // Custom Lifecycle Publisher to feed the downstream MPC Controller
+  rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>::SharedPtr mpc_path_pub_;
 
   double turning_penalty_ = 0.2;
-  unsigned char obstacle_threshold_ = 253; // Vẫn giữ nguyên nhưng LOS sẽ dùng safe_los_threshold 
+  unsigned char obstacle_threshold_ = 253; 
 
-  // Các hàm hỗ trợ
+  // Core Utility Functions
   double euclideanDistance(const GraphNode & node, const GraphNode & goal_node);
-  
-  // 🚀 Khai báo HÀM MỚI (Tia LOS và cắt điểm gãy)
   bool isLineOfSightClear(const GraphNode & a, const GraphNode & b);
   nav_msgs::msg::Path eliminateInflectionPoints(const nav_msgs::msg::Path & raw_path);
   
+  // Dense Interpolation Function for MPC Tracking
+  nav_msgs::msg::Path interpolatePath(const nav_msgs::msg::Path & raw_path, double step_size);
+  
+  // Map Coordinate Transformations
   bool poseOnMap(const GraphNode & node);
   GraphNode worldToGrid(const geometry_msgs::msg::Pose & pose);
   geometry_msgs::msg::Pose gridToWorld(const GraphNode & node);

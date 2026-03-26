@@ -1,5 +1,5 @@
-#ifndef A_STAR_PLANNER_HPP
-#define A_STAR_PLANNER_HPP
+#ifndef TTBOT_PLANNING__A_STAR_PLANNER_HPP_
+#define TTBOT_PLANNING__A_STAR_PLANNER_HPP_
 
 #include <string>
 #include <memory>
@@ -7,40 +7,33 @@
 #include <queue>
 
 #include "rclcpp/rclcpp.hpp"
-#include "rclcpp_action/rclcpp_action.hpp"
-#include "geometry_msgs/msg/point.hpp"
-#include "geometry_msgs/msg/pose_stamped.hpp"
-
 #include "nav2_core/global_planner.hpp"
 #include "nav_msgs/msg/path.hpp"
-#include "nav2_util/robot_utils.hpp"
-#include "nav2_util/lifecycle_node.hpp"
 #include "nav2_costmap_2d/costmap_2d_ros.hpp"
-#include "nav2_msgs/action/smooth_path.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
 
 namespace ttbot_planning
 {
-struct GraphNode
-{
-    int x, y;
-    int cost;
-    double heuristic;
-    std::shared_ptr<GraphNode> prev;
 
-    GraphNode() : GraphNode(0, 0) {}
-    GraphNode(int in_x, int in_y) : x(in_x), y(in_y), cost(0), heuristic(0), prev(nullptr) {}
+struct GraphNode {
+  int x, y;
+  double cost, heuristic;
+  std::shared_ptr<GraphNode> prev;
 
-    bool operator>(const GraphNode & other) const { 
-        return (cost + heuristic) > (other.cost + other.heuristic);
-    }
+  GraphNode() : x(0), y(0), cost(0.0), heuristic(0.0), prev(nullptr) {}
+  GraphNode(int x_, int y_) : x(x_), y(y_), cost(0.0), heuristic(0.0), prev(nullptr) {}
+  
+  GraphNode operator+(const std::pair<int, int> & offset) const {
+    return GraphNode(x + offset.first, y + offset.second);
+  }
 
-    bool operator==(const GraphNode & other) const {
-        return x == other.x && y == other.y;
-    }
-
-    GraphNode operator+(const std::pair<int, int> & dir) const {
-        return GraphNode(x + dir.first, y + dir.second);
-    }
+  bool operator==(const GraphNode & other) const {
+    return x == other.x && y == other.y;
+  }
+  
+  bool operator>(const GraphNode & other) const {
+    return (cost + heuristic) > (other.cost + other.heuristic);
+  }
 };
 
 class AStarPlanner : public nav2_core::GlobalPlanner
@@ -63,20 +56,21 @@ public:
     const geometry_msgs::msg::PoseStamped & goal) override;
 
 private:
+  rclcpp_lifecycle::LifecycleNode::SharedPtr node_;
+  std::string name_;
   std::shared_ptr<tf2_ros::Buffer> tf_;
-  nav2_util::LifecycleNode::SharedPtr node_;
   nav2_costmap_2d::Costmap2D * costmap_;
-  std::string global_frame_, name_;
+  std::string global_frame_;
 
-  rclcpp_action::Client<nav2_msgs::action::SmoothPath>::SharedPtr smooth_client_;
-
+  // Đã cập nhật thành Euclidean Distance để chống xe chạy sát góc tường
+  double euclideanDistance(const GraphNode & node, const GraphNode & goal_node);
+  
   bool poseOnMap(const GraphNode & node);
   GraphNode worldToGrid(const geometry_msgs::msg::Pose & pose);
   geometry_msgs::msg::Pose gridToWorld(const GraphNode & node);
   unsigned int poseToCell(const GraphNode & node);
-  double manhattanDistance(const GraphNode &node, const GraphNode &goal_node);
 };
 
-}  
+}  // namespace ttbot_planning
 
-#endif  
+#endif  // TTBOT_PLANNING__A_STAR_PLANNER_HPP_

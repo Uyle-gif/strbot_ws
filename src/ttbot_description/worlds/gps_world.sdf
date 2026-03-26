@@ -38,13 +38,13 @@
         </link>
     </model>
 
-    <!-- <include>
+    <include>
       <uri>
         https://fuel.gazebosim.org/1.0/hujp/models/Campus
       </uri>
       <name>campus</name>
-      <pose>-3.24 -53.09 0 0 0 1.047</pose>
-    </include> -->
+      <pose>-3.24 -53.09 0.25 0 0 1.047</pose>
+    </include>
     
     <!-- <include>
       <uri>
@@ -57,11 +57,11 @@
 
 
     
-    <include>
+    <!-- <include>
       <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Warehouse</uri>
       <name>warehouse</name>
       <pose>0 0 0 0 0 0</pose> 
-    </include>
+    </include> -->
 
     <actor name="walking_person">
       <skin>
@@ -80,27 +80,27 @@
         <trajectory id="0" type="walking">
           <waypoint>
             <time>0.0</time>
-            <pose>2.0 0.0 1.0 0 0 1.57</pose> 
+            <pose>35.8784 13.8172 1.0 0 0 -2.55</pose> 
           </waypoint>
           
           <waypoint>
-            <time>16.0</time>
-            <pose>2.0 8.0 1.0 0 0 1.57</pose>
+            <time>13.66</time>
+            <pose>24.5060 6.2463 1.0 0 0 -2.55</pose>
           </waypoint>
           
           <waypoint>
-            <time>17.0</time>
-            <pose>2.0 8.0 1.0 0 0 -1.57</pose>
+            <time>14.66</time>
+            <pose>24.5060 6.2463 1.0 0 0 0.59</pose>
           </waypoint>
           
           <waypoint>
-            <time>33.0</time>
-            <pose>2.0 0.0 1.0 0 0 -1.57</pose>
+            <time>28.32</time>
+            <pose>35.8784 13.8172 1.0 0 0 0.59</pose>
           </waypoint>
           
           <waypoint>
-            <time>34.0</time>
-            <pose>2.0 0.0 1.0 0 0 1.57</pose>
+            <time>29.32</time>
+            <pose>35.8784 13.8172 1.0 0 0 -2.55</pose>
           </waypoint>
         </trajectory>
       </script>
