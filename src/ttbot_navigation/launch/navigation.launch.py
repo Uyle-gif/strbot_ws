@@ -20,13 +20,13 @@ def generate_launch_description():
 
     use_sim_time_arg = DeclareLaunchArgument(
         "use_sim_time",
-        default_value="true"
+        default_value="false",
     )
 
     map_yaml_file = LaunchConfiguration('map')
     map_arg = DeclareLaunchArgument(
         'map',
-        default_value=os.path.join(ttbot_mapping_pkg, 'maps', 'outdoor_map.yaml'),
+        default_value=os.path.join(ttbot_mapping_pkg, 'maps', 'bk_map.yaml'),
         description='Full path to map yaml file to load'
     )
 
@@ -34,6 +34,14 @@ def generate_launch_description():
         ttbot_navigation_pkg,
         "behavior_tree",
         "simple_navigation.xml"
+    )
+
+    obstacle_avoider_node = Node(
+        package='ttbot_motion',
+        executable='obstacle_avoider',
+        name='obstacle_avoider',
+        output='screen',
+        parameters=[{'use_sim_time': use_sim_time}]
     )
 
     nav2_map_server = Node(
@@ -125,4 +133,5 @@ def generate_launch_description():
         nav2_smoother_server,
         nav2_bt_navigator,
         nav2_lifecycle_manager,
+        obstacle_avoider_node, 
     ])

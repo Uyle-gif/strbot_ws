@@ -108,7 +108,7 @@ nav_msgs::msg::Path AStarPlannerNew::createPlan(
             unsigned int n_idx = poseToCell(new_node);
             unsigned char cm_cost = costmap_->getCost(new_node.x, new_node.y);
             
-            if (!closed_set[n_idx] && cm_cost < obstacle_threshold_) {
+            if (!closed_set[n_idx] && cm_cost == 0) {
                 double step_cost = (dir.first == 0 || dir.second == 0) ? 1.0 : 1.41421356; 
                 double turning_cost = 0.0;
                 
@@ -213,11 +213,11 @@ bool AStarPlannerNew::isLineOfSightClear(const GraphNode &a, const GraphNode &b)
     int err = dx + dy, e2;
 
     // Safety margin threshold for LOS validation
-    unsigned char safe_los_threshold = 30; 
+    unsigned char safe_los_threshold = 0; 
 
     while (true) {
         if (!poseOnMap(GraphNode(x0, y0))) return false;
-        if (costmap_->getCost(x0, y0) >= safe_los_threshold) return false;
+        if (costmap_->getCost(x0, y0) > safe_los_threshold) return false;
         
         if (x0 == x1 && y0 == y1) break;
         e2 = 2 * err;

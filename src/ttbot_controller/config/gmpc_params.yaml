@@ -1,7 +1,7 @@
 gmpc_controller:
   ros__parameters:
     # 1. Vehicle / controller params
-    desired_speed: 1.2        # tốc độ xe muốn chạy
+    desired_speed: 0.9        # tốc độ xe muốn chạy
                                # tăng -> xe chạy nhanh hơn, bám đường khó hơn
                                # giảm -> xe chậm hơn, dễ ổn định hơn
 
@@ -32,12 +32,12 @@ gmpc_controller:
                                # tăng -> xe cố bám đúng tiến độ hơn
                                # giảm -> bớt ép theo tiến độ hơn
 
-    Q_ey: 25.0                # phạt xe lệch ngang khỏi đường
+    Q_ey: 40.0                # phạt xe lệch ngang khỏi đường
                                # tăng -> xe ép sát vào đường hơn
                                # nhưng quá cao thì dễ lắc trái phải
                                # giảm -> xe mềm hơn, nhưng dễ lệch đường hơn
 
-    Q_epsi: 20.0              # phạt đầu xe bị lệch hướng so với đường
+    Q_epsi: 25.0              # phạt đầu xe bị lệch hướng so với đường
                                # tăng -> đầu xe quay đúng hướng nhanh hơn
                                # nhưng dễ đánh lái gắt hơn
                                # giảm -> xe đỡ gắt hơn, nhưng dễ bị xéo đầu xe
@@ -55,6 +55,6 @@ gmpc_controller:
                                # tăng -> đỡ giật ga, đỡ giật phanh
                                # giảm -> phản ứng nhanh hơn, nhưng dễ giật
 
-    R_domega: 15.0             # phạt đổi lái/quay đột ngột
+    R_domega: 25.0             # phạt đổi lái/quay đột ngột
                                # tăng -> giảm rung lái, giảm zig-zag
                                # giảm -> quay đầu nhanh hơn, nhưng dễ lắc
