@@ -15,7 +15,10 @@ install(
   DIRECTORY config launch behavior_tree
   DESTINATION share/${PROJECT_NAME}
 )
-
+install(PROGRAMS
+  scripts/path_aggregator.py
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 
 

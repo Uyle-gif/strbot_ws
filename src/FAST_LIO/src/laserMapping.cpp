@@ -798,12 +798,12 @@ class LaserMappingNode : public rclcpp::Node
 public:
     LaserMappingNode(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) : Node("laser_mapping", options)
     {
-        this->declare_parameter<bool>("publish.path_en", true);
+        this->declare_parameter<bool>("publish.path_en", false);
         this->declare_parameter<bool>("publish.effect_map_en", false);
         this->declare_parameter<bool>("publish.map_en", false);
-        this->declare_parameter<bool>("publish.scan_publish_en", true);
-        this->declare_parameter<bool>("publish.dense_publish_en", true);
-        this->declare_parameter<bool>("publish.scan_bodyframe_pub_en", true);
+        this->declare_parameter<bool>("publish.scan_publish_en", false);
+        this->declare_parameter<bool>("publish.dense_publish_en", false);
+        this->declare_parameter<bool>("publish.scan_bodyframe_pub_en", false);
         this->declare_parameter<int>("max_iteration", 4);
         this->declare_parameter<string>("map_file_path", "");
         this->declare_parameter<string>("common.lid_topic", "/livox/lidar");
@@ -834,11 +834,11 @@ public:
         this->declare_parameter<vector<double>>("mapping.extrinsic_T", vector<double>());
         this->declare_parameter<vector<double>>("mapping.extrinsic_R", vector<double>());
 
-        this->get_parameter_or<bool>("publish.path_en", path_en, true);
-        this->get_parameter_or<bool>("publish.effect_map_en", effect_pub_en, true);
-        this->get_parameter_or<bool>("publish.map_en", map_pub_en, true);
-        this->get_parameter_or<bool>("publish.scan_publish_en", scan_pub_en, true);
-        this->get_parameter_or<bool>("publish.dense_publish_en", dense_pub_en, true);
+        this->get_parameter_or<bool>("publish.path_en", path_en, false);
+        this->get_parameter_or<bool>("publish.effect_map_en", effect_pub_en, false);
+        this->get_parameter_or<bool>("publish.map_en", map_pub_en, false);
+        this->get_parameter_or<bool>("publish.scan_publish_en", scan_pub_en, false);
+        this->get_parameter_or<bool>("publish.dense_publish_en", dense_pub_en, false);
         this->get_parameter_or<bool>("publish.scan_bodyframe_pub_en", scan_body_pub_en, false);
         this->get_parameter_or<int>("max_iteration", NUM_MAX_ITERATIONS, 4);
         this->get_parameter_or<string>("map_file_path", map_file_path, "");
@@ -1073,7 +1073,7 @@ private:
             if (scan_pub_en)      publish_frame_world(pubLaserCloudFull_);
             if (scan_pub_en && scan_body_pub_en) publish_frame_body(pubLaserCloudFull_body_);
             if (effect_pub_en) publish_effect_world(pubLaserCloudEffect_);
-            // if (map_pub_en) publish_map(pubLaserCloudMap_);
+            if (map_pub_en) publish_map(pubLaserCloudMap_);
 
             /*** Debug variables ***/
             if (runtime_pos_log)
@@ -1109,7 +1109,7 @@ private:
 
     void map_publish_callback()
     {
-        // if (map_pub_en) publish_map(pubLaserCloudMap_);
+        if (map_pub_en) publish_map(pubLaserCloudMap_);
     }
 
     void map_save_callback(std_srvs::srv::Trigger::Request::ConstSharedPtr req, std_srvs::srv::Trigger::Response::SharedPtr res)

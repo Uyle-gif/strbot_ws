@@ -30,10 +30,11 @@ def generate_launch_description():
         description='Full path to map yaml file to load'
     )
 
-    default_bt_xml_path = os.path.join(
-        ttbot_navigation_pkg,
-        "behavior_tree",
-        "simple_navigation.xml"
+    path_aggregator_node = Node(
+        package='ttbot_navigation', # Tên package của bạn
+        executable='path_aggregator.py', # Tên file script
+        name='path_aggregator',
+        output='screen'
     )
 
     obstacle_avoider_node = Node(
@@ -96,19 +97,19 @@ def generate_launch_description():
         ],
     )
 
+    default_bt_xml_path = os.path.join(ttbot_navigation_pkg, "behavior_tree", "simple_navigation.xml")
+    nav_through_bt_path = os.path.join(ttbot_navigation_pkg, "behavior_tree", "nav_through_poses.xml")
+
     nav2_bt_navigator = Node(
         package="nav2_bt_navigator",
         executable="bt_navigator",
         name="bt_navigator",
         output="screen",
         parameters=[
-            os.path.join(
-                ttbot_navigation_pkg,
-                "config",
-                "bt_navigator.yaml"),
+            os.path.join(ttbot_navigation_pkg, "config", "bt_navigator.yaml"),
             {"use_sim_time": use_sim_time},
-            {"default_nav_to_pose_bt_xml": default_bt_xml_path},
-            {"default_nav_through_poses_bt_xml": default_bt_xml_path}
+            {"default_nav_to_pose_bt_xml": default_bt_xml_path},      
+            {"default_nav_through_poses_bt_xml": nav_through_bt_path} 
         ],
     )
 
@@ -134,4 +135,5 @@ def generate_launch_description():
         nav2_bt_navigator,
         nav2_lifecycle_manager,
         obstacle_avoider_node, 
+        path_aggregator_node,
     ])

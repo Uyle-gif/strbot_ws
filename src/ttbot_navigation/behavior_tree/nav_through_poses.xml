@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="3" main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence>
+      <ComputePathThroughPoses goals="{goals}"
+                               planner_id="GridBased"
+                               path="{path}"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <TreeNodesModel>
+    <Action ID="ComputePathThroughPoses">
+      <input_port name="goals">Destinations to plan through</input_port>
+      <input_port name="planner_id">Mapped name to the planner plugin type to use</input_port>
+      <output_port name="path">Path created by ComputePathThroughPoses node</output_port>
+    </Action>
+  </TreeNodesModel>
+</root>

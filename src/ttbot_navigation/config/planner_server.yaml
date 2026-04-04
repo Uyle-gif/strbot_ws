@@ -3,7 +3,7 @@ planner_server:
     expected_planner_frequency: 2.0
 
 
-    use_sim_time: true
+    use_sim_time: false
 
     
     transform_tolerance: 2.0
@@ -23,7 +23,7 @@ global_costmap:
       robot_base_frame: base_link
 
 
-      use_sim_time: true
+      use_sim_time: false 
 
 
       footprint: "[ [0.5, 0.35], [0.5, -0.35], [-0.5, -0.35], [-0.5, 0.35] ]"
@@ -56,5 +56,5 @@ global_costmap:
       
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 3.8
-        inflation_radius: 4.0
+        cost_scaling_factor: 3.0 
+        inflation_radius: 1.3

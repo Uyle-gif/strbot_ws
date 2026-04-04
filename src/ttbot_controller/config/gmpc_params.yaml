@@ -1,7 +1,7 @@
 gmpc_controller:
   ros__parameters:
     # 1. Vehicle / controller params
-    desired_speed: 0.9        # tốc độ xe muốn chạy
+    desired_speed: 1.0        # tốc độ xe muốn chạy
                                # tăng -> xe chạy nhanh hơn, bám đường khó hơn
                                # giảm -> xe chậm hơn, dễ ổn định hơn
 

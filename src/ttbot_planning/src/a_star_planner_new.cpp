@@ -59,28 +59,28 @@ nav_msgs::msg::Path AStarPlannerNew::createPlan(
   
   min_cost[poseToCell(start_node)] = 0.0;
 
-  // Early Line-of-Sight (LOS) check for open environments
-  if (isLineOfSightClear(start_node, goal_node)) {
-    nav_msgs::msg::Path open_path;
-    open_path.header.frame_id = global_frame_;
-    open_path.header.stamp = node_->now();
-    geometry_msgs::msg::PoseStamped p1, p2;
-    p1.header = open_path.header; p1.pose = gridToWorld(start_node);
-    p2.header = open_path.header; p2.pose = gridToWorld(goal_node);
-    open_path.poses.push_back(p1);
-    open_path.poses.push_back(p2);
+  // // Early Line-of-Sight (LOS) check for open environments
+  // if (isLineOfSightClear(start_node, goal_node)) {
+  //   nav_msgs::msg::Path open_path;
+  //   open_path.header.frame_id = global_frame_;
+  //   open_path.header.stamp = node_->now();
+  //   geometry_msgs::msg::PoseStamped p1, p2;
+  //   p1.header = open_path.header; p1.pose = gridToWorld(start_node);
+  //   p2.header = open_path.header; p2.pose = gridToWorld(goal_node);
+  //   open_path.poses.push_back(p1);
+  //   open_path.poses.push_back(p2);
     
-    // Interpolate the straight line to provide dense waypoints for MPC
-    open_path = interpolatePath(open_path, 0.05);
+  //   // Interpolate the straight line to provide dense waypoints for MPC
+  //   open_path = interpolatePath(open_path, 0.05);
     
-    auto end_time = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::milli> elapsed_time = end_time - start_time;
-    RCLCPP_INFO(node_->get_logger(), "[A* Improved - OPEN AREA] Time: %.3f ms", elapsed_time.count());
+  //   auto end_time = std::chrono::high_resolution_clock::now();
+  //   std::chrono::duration<double, std::milli> elapsed_time = end_time - start_time;
+  //   RCLCPP_INFO(node_->get_logger(), "[A* Improved - OPEN AREA] Time: %.3f ms", elapsed_time.count());
     
-    // Publish directly to MPC
-    mpc_path_pub_->publish(open_path);
-    return open_path;
-  }
+  //   // Publish directly to MPC
+  //   mpc_path_pub_->publish(open_path);
+  //   return open_path;
+  // }
 
   std::priority_queue<GraphNode, std::vector<GraphNode>, std::greater<GraphNode>> pending_nodes;
   pending_nodes.push(start_node);
@@ -185,7 +185,7 @@ nav_msgs::msg::Path AStarPlannerNew::createPlan(
               final_path.header.stamp = node_->now(); 
               
               // Publish the smoothed path to MPC Controller
-              mpc_path_pub_->publish(final_path);
+              //mpc_path_pub_->publish(final_path);
               return final_path;
             }
           }
@@ -196,7 +196,7 @@ nav_msgs::msg::Path AStarPlannerNew::createPlan(
   
   // Fallback: Publish the un-smoothed (but interpolated) path if smoother fails
   path.header.stamp = node_->now();
-  mpc_path_pub_->publish(path);
+  //mpc_path_pub_->publish(path);
   
   return path;
 }
