@@ -10,19 +10,57 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(pcl_conversions REQUIRED)
+find_package(PCL REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(yaml-cpp REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 
 # include headers
 include_directories(include)
+include_directories(${PCL_INCLUDE_DIRS})
+include_directories(${OpenCV_INCLUDE_DIRS})
 
 # add executables
 add_executable(imu_republisher src/imu_republisher.cpp)
 ament_target_dependencies(imu_republisher rclcpp sensor_msgs)
 
+add_executable(initial_icp_localizer src/initial_icp_localizer.cpp)
+ament_target_dependencies(initial_icp_localizer
+  rclcpp
+  sensor_msgs
+  geometry_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  pcl_conversions
+)
+
+target_link_libraries(initial_icp_localizer
+  ${PCL_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+  yaml-cpp
+)
+
+add_executable(fastlio_odom_aligner src/fastlio_odom_aligner.cpp)
+ament_target_dependencies(fastlio_odom_aligner
+  rclcpp
+  nav_msgs
+  geometry_msgs
+  tf2
+  tf2_geometry_msgs
+)
+
 install(TARGETS
   imu_republisher
+  initial_icp_localizer
+  fastlio_odom_aligner
   DESTINATION lib/${PROJECT_NAME}
 )
 

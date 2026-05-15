@@ -1,0 +1,16 @@
+fastlio_odom_aligner:
+  ros__parameters:
+    raw_odom_topic: "/Odometry"
+    aligned_odom_topic: "/Odometry_aligned"
+    initial_pose_topic: "/icp_initial_pose"
+
+    map_frame: "map"
+    base_frame: "base_link"
+
+    wait_for_icp: true
+    use_first_odom_as_zero: true
+    lock_after_first_icp: true
+
+    manual_initial_x: 0.0
+    manual_initial_y: 0.0
+    manual_initial_yaw: 0.0

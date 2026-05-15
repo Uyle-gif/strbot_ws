@@ -12,6 +12,7 @@ def generate_launch_description():
     pkg_description = get_package_share_directory('ttbot_description')
     pkg_localization = get_package_share_directory('ttbot_localization')
     pkg_controller = get_package_share_directory('ttbot_controller')
+    pkg_mapping = get_package_share_directory('ttbot_mapping')
 
     use_sim_time = LaunchConfiguration('use_sim_time')
     arg_sim_time = DeclareLaunchArgument('use_sim_time', default_value='true')
@@ -30,6 +31,17 @@ def generate_launch_description():
     low_level_control_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(pkg_controller, 'launch', 'controller.launch.py')),
         launch_arguments={'use_sim_time': use_sim_time}.items()
+    )
+
+    pointcloud_to_laserscan_launch = TimerAction(
+        period=3.0,
+        actions=[
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    os.path.join(pkg_mapping, 'launch', 'pointcloud_to_laserscan.launch.py')
+                )
+            )
+        ]
     )
 
     joy_launch_group = GroupAction(
@@ -147,6 +159,7 @@ def generate_launch_description():
 
         gazebo_launch,
         low_level_control_launch,
+        pointcloud_to_laserscan_launch,
         
         joy_launch_group,
         stamped_mux_node, 

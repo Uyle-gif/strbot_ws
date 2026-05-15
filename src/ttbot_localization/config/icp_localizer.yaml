@@ -1,0 +1,40 @@
+initial_icp_localizer:
+  ros__parameters:
+    map_yaml: "/home/vinh/STR_Robot/src/ttbot_mapping/maps/outdoor_map.yaml"
+
+    scan_topic: "/scan"
+    map_frame: "map"
+    base_frame: "base_link"
+    laser_frame: ""
+
+    use_initialpose_topic: true
+    initialpose_topic: "/initialpose"
+    icp_pose_topic: "/icp_initial_pose"
+
+    initial_x: 0.0
+    initial_y: 0.0
+    initial_yaw: 0.0
+
+    run_once: true
+    publish_debug_clouds: true
+
+    extract_boundary_only: true
+    map_downsample_resolution: 0.10
+    scan_downsample_resolution: 0.05
+
+    min_scan_range: 0.5
+    max_scan_range: 25.0
+
+    max_correspondence_distance: 1.5
+    maximum_iterations: 80
+    transformation_epsilon: 0.000001
+    euclidean_fitness_epsilon: 0.00001
+    fitness_score_threshold: 35.0
+
+    icp_retry_period_sec: 2.0
+
+    allow_tf_transform_scan_to_base: true
+
+    result_covariance_x: 0.05
+    result_covariance_y: 0.05
+    result_covariance_yaw: 0.03

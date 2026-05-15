@@ -32,7 +32,7 @@ ekf_global_node:
     imu0_remove_gravitational_acceleration: true
 
     
-    odom1: /Odometry  
+    odom1: /Odometry 
     odom1_config: [true,  true,  false,  
                     false,  false,  true,  
                     false, false, false,
