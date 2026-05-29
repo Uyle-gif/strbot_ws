@@ -156,7 +156,7 @@ Before running navigation, check the map used by the Navigation map server.
 
 Physical experiments were conducted using a custom Ackermann-steered mobile robot.
 
-![Physical Robot](path/to/fig7.png)
+![Physical Robot]
 <img width="1448" height="1086" alt="c4_car" src="https://github.com/user-attachments/assets/1e197d75-f146-46c9-97ed-553a42c45d5f" />
 
 
@@ -169,11 +169,12 @@ The proposed architecture was deployed on the physical robot to verify sim-to-re
 
 Both controllers executed well within the 30 Hz (33.3 ms) control loop.
 
-![Runtime Statistics](path/to/fig8.png)
-<img width="1670" height="942" alt="solvetime-1" src="https://github.com/user-attachments/assets/d3463c61-63e3-45b9-9ad2-0bcfde8e1eca" />
+![Runtime Statistics]
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/d3463c61-63e3-45b9-9ad2-0bcfde8e1eca" width="500">
+</p>
 
-
-![Real-World Path Tracking](path/to/fig5_cd.png)
+![Real-World Path Tracking]
 <img width="1369" height="1279" alt="square_path_tracking-1" src="https://github.com/user-attachments/assets/9205a880-3b4e-4405-b985-ba4c91043992" />
 <img width="1369" height="1269" alt="8_path_tracking-1" src="https://github.com/user-attachments/assets/558b6e6d-5d3c-4ef8-aa3d-c47cd8750556" />
 
