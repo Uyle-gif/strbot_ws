@@ -158,7 +158,7 @@ Physical experiments were conducted using a custom Ackermann-steered mobile robo
 
 Physical Robot
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/1e197d75-f146-46c9-97ed-553a42c45d5f" width="45%" />
+  <img src="https://github.com/user-attachments/assets/1e197d75-f146-46c9-97ed-553a42c45d5f" width="60%" />
 </p>
 
 ## Real-World Path-Tracking Performance
