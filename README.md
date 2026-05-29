@@ -175,8 +175,10 @@ Both controllers executed well within the 30 Hz (33.3 ms) control loop.
 </p>
 
 ![Real-World Path Tracking]
-<img width="1369" height="1279" alt="square_path_tracking-1" src="https://github.com/user-attachments/assets/9205a880-3b4e-4405-b985-ba4c91043992" />
-<img width="1369" height="1269" alt="8_path_tracking-1" src="https://github.com/user-attachments/assets/558b6e6d-5d3c-4ef8-aa3d-c47cd8750556" />
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/9205a880-3b4e-4405-b985-ba4c91043992" width="45%" />
+  <img src="https://github.com/user-attachments/assets/558b6e6d-5d3c-4ef8-aa3d-c47cd8750556" width="45%" />
+</p>
 
 
 **Video Demonstration:** https://youtu.be/eXZOD7MUVX8.
