@@ -1,7 +1,7 @@
 # STR Robot: Setup and Build Guide
 
-[![arXiv](https://img.shields.io/badge/arXiv-Paper_Link-b31b1b.svg)](https://arxiv.org/abs/2605.28110)
-[![Website](https://img.shields.io/badge/Website-Project_Page-1081c2.svg)](https://ntdathp.github.io/outdoor-robot-web/)
+* **Project Website:** https://ntdathp.github.io/outdoor-robot-web/
+* **arXiv Paper:** https://arxiv.org/abs/2605.28110
 
 ## 1. Prerequisites
 
