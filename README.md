@@ -1,6 +1,9 @@
 
 # STR Robot: Setup and Build Guide
 
+[![arXiv](https://img.shields.io/badge/arXiv-Paper_Link-b31b1b.svg)](https://arxiv.org/abs/XXXX.XXXXX)
+[![Website](https://img.shields.io/badge/Website-Project_Page-1081c2.svg)](https://ntdathp.github.io/outdoor-robot-web/)
+
 ## 1. Prerequisites
 
 - Ubuntu 22.04 LTS
