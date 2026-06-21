@@ -1,7 +1,7 @@
 # STR Robot: Setup and Build Guide
 
-[Project Website](https://ntdathp.github.io/outdoor-robot-web/)   
-[arXiv Paper](https://arxiv.org/abs/2605.28110)
+> [Project Website](https://ntdathp.github.io/outdoor-robot-web/)   
+> [arXiv Paper](https://arxiv.org/abs/2605.28110)
 
 ## 1. Prerequisites
 
